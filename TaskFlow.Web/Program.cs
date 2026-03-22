@@ -1,4 +1,4 @@
-using TaskFlow.Components;
+using TaskFlow.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,2 +1,7 @@
 <Solution>
+  <Project Path="TaskFlow.Application/TaskFlow.Application.csproj" />
+  <Project Path="TaskFlow.Domain/TaskFlow.Domain.csproj" />
+  <Project Path="TaskFlow.Infrastructure/TaskFlow.Infrastructure.csproj" />
+  <Project Path="TaskFlow.Web/TaskFlow.Web.csproj" />
+  <Project Path="TaskFlow.WebAPI/TaskFlow.WebAPI.csproj" />
 </Solution>
