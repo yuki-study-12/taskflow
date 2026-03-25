@@ -1,0 +1,163 @@
+@page "/kanban"
+@rendermode InteractiveServer
+
+<PageTitle>かんばんボード - TaskFlow</PageTitle>
+
+<h1 class="mb-4">かんばんボード</h1>
+
+<div class="d-flex gap-3 overflow-auto pb-3" style="min-height: 500px;">
+
+    <!-- Todo 列 -->
+    <div class="kanban-column flex-shrink-0">
+        <div class="card h-100">
+            <div class="card-header bg-secondary text-white fw-semibold">
+                Todo (@todoTasks.Count)
+            </div>
+            <div class="card-body d-flex flex-column gap-2">
+                @foreach (var task in todoTasks)
+                {
+                    <div class="card border-secondary">
+                        <div class="card-body p-2">
+                            <h6 class="card-title mb-1">@task.Title</h6>
+                            <p class="card-text small text-muted mb-2">期限: @task.DueDate</p>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    @onclick="() => OpenModal(task)">詳細</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- 進行中 列 -->
+    <div class="kanban-column flex-shrink-0">
+        <div class="card h-100">
+            <div class="card-header bg-warning text-dark fw-semibold">
+                進行中 (@inProgressTasks.Count)
+            </div>
+            <div class="card-body d-flex flex-column gap-2">
+                @foreach (var task in inProgressTasks)
+                {
+                    <div class="card border-warning">
+                        <div class="card-body p-2">
+                            <h6 class="card-title mb-1">@task.Title</h6>
+                            <p class="card-text small text-muted mb-2">期限: @task.DueDate</p>
+                            <button class="btn btn-sm btn-outline-warning"
+                                    @onclick="() => OpenModal(task)">詳細</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- 完了 列 -->
+    <div class="kanban-column flex-shrink-0">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white fw-semibold">
+                完了 (@doneTasks.Count)
+            </div>
+            <div class="card-body d-flex flex-column gap-2">
+                @foreach (var task in doneTasks)
+                {
+                    <div class="card border-success">
+                        <div class="card-body p-2">
+                            <h6 class="card-title mb-1">@task.Title</h6>
+                            <p class="card-text small text-muted mb-2">期限: @task.DueDate</p>
+                            <button class="btn btn-sm btn-outline-success"
+                                    @onclick="() => OpenModal(task)">詳細</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- タスク詳細モーダル -->
+@if (showModal && selectedTask is not null)
+{
+    <div class="modal show d-block" tabindex="-1"
+         style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">タスク詳細</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal" aria-label="閉じる"></button>
+                </div>
+                <div class="modal-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">タイトル</dt>
+                        <dd class="col-sm-8">@selectedTask.Title</dd>
+
+                        <dt class="col-sm-4">説明</dt>
+                        <dd class="col-sm-8">@selectedTask.Description</dd>
+
+                        <dt class="col-sm-4">担当者</dt>
+                        <dd class="col-sm-8">@selectedTask.Assignee</dd>
+
+                        <dt class="col-sm-4">期限</dt>
+                        <dd class="col-sm-8">@selectedTask.DueDate</dd>
+
+                        <dt class="col-sm-4">ステータス</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge @GetStatusBadge(selectedTask.Status)">
+                                @selectedTask.Status
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">閉じる</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private record KanbanTask(string Title, string Description, string Assignee, string DueDate, string Status);
+
+    private bool showModal = false;
+    private KanbanTask? selectedTask;
+
+    private List<KanbanTask> todoTasks =
+    [
+        new("通知機能実装", "プッシュ通知とメール通知の実装", "未割り当て", "2026-04-10", "未着手"),
+        new("レポート画面作成", "月次進捗レポートのUI設計", "田中 太郎", "2026-04-15", "未着手"),
+        new("テスト自動化", "E2Eテストの整備", "鈴木 花子", "2026-04-20", "未着手"),
+    ];
+
+    private List<KanbanTask> inProgressTasks =
+    [
+        new("APIエンドポイント実装", "タスクCRUD APIの実装", "山田 次郎", "2026-03-28", "進行中"),
+        new("かんばんボードUI", "ドラッグ&ドロップ対応のUI実装", "田中 太郎", "2026-04-01", "進行中"),
+    ];
+
+    private List<KanbanTask> doneTasks =
+    [
+        new("ログイン画面デザイン", "Bootstrap を使ったレスポンシブなログインフォーム", "山田 次郎", "2026-03-20", "完了"),
+        new("データベース設計", "ERDの作成とマイグレーション設定", "鈴木 花子", "2026-03-15", "完了"),
+        new("ソリューション構成", "クリーンアーキテクチャに基づくプロジェクト構成", "田中 太郎", "2026-03-10", "完了"),
+    ];
+
+    private void OpenModal(KanbanTask task)
+    {
+        selectedTask = task;
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedTask = null;
+    }
+
+    private string GetStatusBadge(string status) => status switch
+    {
+        "完了" => "bg-success",
+        "進行中" => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+}
