@@ -9,10 +9,8 @@ file sealed class TestDomainEvent : IDomainEvent
     public DateTime OccurredOn { get; } = DateTime.UtcNow;
 }
 
-file sealed class TestAggregate : AggregateRoot<Guid>
+file sealed class TestAggregate(Guid id) : AggregateRoot<Guid>(id)
 {
-    public TestAggregate(Guid id) : base(id) { }
-
     public void AddEvent(IDomainEvent e) => RaiseDomainEvent(e);
 }
 

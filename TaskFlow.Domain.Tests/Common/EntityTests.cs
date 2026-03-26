@@ -4,14 +4,12 @@ using Xunit;
 namespace TaskFlow.Domain.Tests.Common;
 
 // テスト用ヘルパー
-file sealed class TestEntity : Entity<Guid>
+file sealed class TestEntity(Guid id) : Entity<Guid>(id)
 {
-    public TestEntity(Guid id) : base(id) { }
 }
 
-file sealed class OtherEntity : Entity<Guid>
+file sealed class OtherEntity(Guid id) : Entity<Guid>(id)
 {
-    public OtherEntity(Guid id) : base(id) { }
 }
 
 public class EntityTests
