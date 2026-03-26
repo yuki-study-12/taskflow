@@ -4,16 +4,10 @@ using Xunit;
 namespace TaskFlow.Domain.Tests.Common;
 
 // テスト用ヘルパー
-file sealed class Money : ValueObject
+file sealed class Money(decimal amount, string currency) : ValueObject
 {
-    public decimal Amount { get; }
-    public string Currency { get; }
-
-    public Money(decimal amount, string currency)
-    {
-        Amount = amount;
-        Currency = currency;
-    }
+    public decimal Amount { get; } = amount;
+    public string Currency { get; } = currency;
 
     protected override IEnumerable<object?> GetEqualityComponents()
     {
