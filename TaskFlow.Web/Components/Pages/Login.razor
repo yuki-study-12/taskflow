@@ -1,0 +1,24 @@
+@page "/login"
+@layout TaskFlow.Web.Components.Layout.LoginLayout
+
+<PageTitle>ログイン - TaskFlow</PageTitle>
+
+<div class="card shadow" style="width: 360px;">
+    <div class="card-header text-center py-3">
+        <h4 class="mb-0 fw-bold">TaskFlow</h4>
+        <small class="text-muted">チーム向けプロジェクト管理</small>
+    </div>
+    <div class="card-body p-4">
+        <form>
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="username" placeholder="ユーザー名" />
+                <label for="username">ユーザー名</label>
+            </div>
+            <div class="form-floating mb-4">
+                <input type="password" class="form-control" id="password" placeholder="パスワード" />
+                <label for="password">パスワード</label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">ログイン</button>
+        </form>
+    </div>
+</div>
