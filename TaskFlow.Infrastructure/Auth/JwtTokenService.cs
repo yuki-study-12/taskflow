@@ -14,10 +14,6 @@ internal sealed class JwtTokenService(IOptions<JwtSettings> options) : IJwtToken
 
     public string GenerateToken(UserDto user)
     {
-        if (_settings.Secret.Length < 32)
-            throw new InvalidOperationException(
-                "JwtSettings:Secret は32文字以上にしてください。");
-
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_settings.Secret));
 

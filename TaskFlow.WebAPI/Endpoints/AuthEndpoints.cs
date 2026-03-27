@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using TaskFlow.Application.Auth.Commands;
 using TaskFlow.Application.Auth.Queries;
 using TaskFlow.Application.Common.Constants;
+using TaskFlow.Application.Common.Exceptions;
 using TaskFlow.Application.Common.Interfaces;
 using TaskFlow.Application.Common.Models;
 using TaskFlow.Contracts.Auth;
@@ -18,12 +19,10 @@ public static class AuthEndpoints
 
         group.MapPost("/register", RegisterAsync)
              .WithName("Register")
-             .AddEndpointFilter<ValidationFilter<RegisterRequest>>()
              .AllowAnonymous();
 
         group.MapPost("/login", LoginAsync)
              .WithName("Login")
-             .AddEndpointFilter<ValidationFilter<LoginRequest>>()
              .AllowAnonymous();
 
         group.MapGet("/me", GetMeAsync)
@@ -73,7 +72,7 @@ public static class AuthEndpoints
             result.Token!));
     }
 
-    private static async Task<Results<Ok<UserProfileResponse>, UnauthorizedHttpResult, NotFound>>
+    private static async Task<Results<Ok<UserProfileResponse>, UnauthorizedHttpResult>>
         GetMeAsync(
             ClaimsPrincipal principal,
             IQueryHandler<GetCurrentUserQuery, UserDto?> handler,
@@ -88,7 +87,7 @@ public static class AuthEndpoints
             cancellationToken);
 
         if (user is null)
-            return TypedResults.NotFound();
+            throw new NotFoundException(nameof(UserDto), userId);
 
         return TypedResults.Ok(new UserProfileResponse(
             user.Id,

@@ -1,11 +1,20 @@
 using TaskFlow.Application;
 using TaskFlow.Infrastructure;
 using TaskFlow.WebAPI.Endpoints;
+using TaskFlow.WebAPI.Middleware;
+using TaskFlow.WebAPI.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// OpenAPI / Swagger
-builder.Services.AddOpenApi();
+// OpenAPI / Swagger with Bearer token support
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
+
+// ProblemDetails + exception handler
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Application + Infrastructure
 builder.Services.AddApplication();
@@ -18,6 +27,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 // Authentication must come before Authorization
