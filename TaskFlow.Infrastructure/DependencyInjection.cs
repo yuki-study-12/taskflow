@@ -36,7 +36,9 @@ public static class DependencyInjection
 
         var jwtSettings = configuration
             .GetSection(JwtSettings.SectionName)
-            .Get<JwtSettings>()!;
+            .Get<JwtSettings>()
+            ?? throw new InvalidOperationException(
+                $"appsettings に '{JwtSettings.SectionName}' セクションがありません。");
 
         if (jwtSettings.Secret.Length < 32)
             throw new InvalidOperationException(

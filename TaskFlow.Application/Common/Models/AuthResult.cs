@@ -1,7 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TaskFlow.Application.Common.Models;
 
 public sealed class AuthResult
 {
+    [MemberNotNullWhen(true, nameof(User), nameof(Token))]
     public bool Succeeded { get; private init; }
     public string? Token { get; private init; }
     public UserDto? User { get; private init; }
