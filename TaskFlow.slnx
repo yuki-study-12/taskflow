@@ -6,4 +6,5 @@
   <Project Path="TaskFlow.WebAPI/TaskFlow.WebAPI.csproj" />
   <Project Path="TaskFlow.Contracts/TaskFlow.Contracts.csproj" />
   <Project Path="TaskFlow.Domain.Tests/TaskFlow.Domain.Tests.csproj" />
+  <Project Path="TaskFlow.Infrastructure.Tests/TaskFlow.Infrastructure.Tests.csproj" />
 </Solution>

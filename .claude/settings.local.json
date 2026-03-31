@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue:*)",
+      "Bash(ls c:/Users/avoce/Desktop/taskflow/*.sln)",
+      "Bash(cat c:/Users/avoce/Desktop/taskflow/*.sln)"
+    ]
+  }
+}
