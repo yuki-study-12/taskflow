@@ -24,6 +24,7 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
             m.ToTable("ProjectMembers");
             m.WithOwner().HasForeignKey("ProjectId");
             m.HasKey(pm => pm.Id);
+            m.Property(pm => pm.Id).ValueGeneratedNever();
 
             m.Property(pm => pm.UserId).IsRequired();
 

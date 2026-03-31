@@ -29,7 +29,6 @@ public class ProjectRepository(AppDbContext context) : IProjectRepository
 
     public async Task UpdateAsync(Project project, CancellationToken cancellationToken = default)
     {
-        context.Projects.Update(project);
         await context.SaveChangesAsync(cancellationToken);
     }
 
