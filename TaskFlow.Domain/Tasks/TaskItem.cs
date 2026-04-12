@@ -10,7 +10,7 @@ public class TaskItem : Common.AggregateRoot<Guid>
     public Guid CreatorId { get; private set; }
     public Guid? AssigneeId { get; private set; }
     public Priority Priority { get; private set; }
-    public TaskStatus Status { get; private set; }
+    public TaskItemStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
     public IReadOnlyList<Comment> Comments => _comments.AsReadOnly();
@@ -21,7 +21,7 @@ public class TaskItem : Common.AggregateRoot<Guid>
         ColumnId = columnId;
         CreatorId = creatorId;
         Priority = Priority.Medium;
-        Status = TaskStatus.Todo;
+        Status = TaskItemStatus.Todo;
         CreatedAt = createdAt;
     }
 

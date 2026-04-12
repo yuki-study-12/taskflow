@@ -17,7 +17,7 @@ public class TaskItemTests
         Assert.Equal("My Task", task.Title);
         Assert.Equal(columnId, task.ColumnId);
         Assert.Equal(creatorId, task.CreatorId);
-        Assert.Equal(TaskStatus.Todo, task.Status);
+        Assert.Equal(TaskItemStatus.Todo, task.Status);
         Assert.Equal(Priority.Medium, task.Priority);
         Assert.Null(task.AssigneeId);
     }
