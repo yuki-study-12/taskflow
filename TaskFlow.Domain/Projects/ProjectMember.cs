@@ -11,6 +11,11 @@ public class ProjectMember : Common.Entity<Guid>
         Role = role;
     }
 
+    public void UpdateRole(MemberRole newRole)
+    {
+        Role = newRole;
+    }
+
     // EF Core 用
     private ProjectMember() { Role = MemberRole.Member; }
 }
