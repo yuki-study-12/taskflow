@@ -73,6 +73,7 @@ public static class DependencyInjection
         // Application interfaces → Infrastructure implementations
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<IProjectRepository, ProjectRepository>();
 
         return services;
     }

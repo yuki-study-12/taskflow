@@ -9,8 +9,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
 {
 
-    // 将来のドメイン DbSet はここに追加
-    // public DbSet<Project> Projects => Set<Project>();
+    public DbSet<TaskFlow.Domain.Projects.Project> Projects => Set<TaskFlow.Domain.Projects.Project>();
 
 
     protected override void OnModelCreating(ModelBuilder builder)
