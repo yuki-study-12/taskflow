@@ -49,6 +49,20 @@ public class Project : Common.AggregateRoot<Guid>
         Description = description;
     }
 
+    public void UpdateMemberRole(Guid userId, MemberRole newRole)
+    {
+        if (newRole == MemberRole.Owner)
+            throw new InvalidOperationException("Owner role cannot be assigned via UpdateMemberRole.");
+
+        var member = _members.FirstOrDefault(m => m.UserId == userId)
+            ?? throw new InvalidOperationException($"User {userId} is not a member of this project.");
+
+        if (member.Role == MemberRole.Owner)
+            throw new InvalidOperationException("The project owner's role cannot be changed.");
+
+        member.UpdateRole(newRole);
+    }
+
     public void RemoveMember(Guid userId)
     {
         if (_members.Any(m => m.UserId == userId && m.Role == MemberRole.Owner))
