@@ -37,4 +37,7 @@ app.UseAuthorization();
 // Auth endpoints
 app.MapAuthEndpoints();
 
+// Project endpoints
+app.MapProjectEndpoints();
+
 app.Run();

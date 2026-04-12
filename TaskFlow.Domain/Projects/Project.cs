@@ -43,6 +43,12 @@ public class Project : Common.AggregateRoot<Guid>
         RaiseDomainEvent(new Events.MemberInvitedEvent(Id, userId, role, DateTime.UtcNow));
     }
 
+    public void Update(string name, string description)
+    {
+        Name = name;
+        Description = description;
+    }
+
     public void RemoveMember(Guid userId)
     {
         if (_members.Any(m => m.UserId == userId && m.Role == MemberRole.Owner))
