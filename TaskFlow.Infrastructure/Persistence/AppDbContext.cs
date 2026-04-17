@@ -10,6 +10,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 {
 
     public DbSet<TaskFlow.Domain.Projects.Project> Projects => Set<TaskFlow.Domain.Projects.Project>();
+    public DbSet<TaskFlow.Domain.Boards.Board> Boards => Set<TaskFlow.Domain.Boards.Board>();
+    public DbSet<TaskFlow.Domain.Boards.Column> Columns => Set<TaskFlow.Domain.Boards.Column>();
+    public DbSet<TaskFlow.Domain.Boards.BoardTask> Tasks => Set<TaskFlow.Domain.Boards.BoardTask>();
 
 
     protected override void OnModelCreating(ModelBuilder builder)
