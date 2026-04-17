@@ -51,6 +51,9 @@ public static class BoardEndpoints
         taskGroup.MapPut("/{id:guid}", UpdateTaskAsync)
             .WithName("UpdateTask");
 
+        taskGroup.MapPut("/{id:guid}/move", MoveTaskAsync)
+            .WithName("MoveTask");
+
         taskGroup.MapDelete("/{id:guid}", DeleteTaskAsync)
             .WithName("DeleteTask");
 
@@ -170,6 +173,24 @@ public static class BoardEndpoints
 
         var task = await handler.HandleAsync(
             new UpdateTaskCommand(id, request.Title, request.Description, request.AssigneeId, userId),
+            cancellationToken);
+
+        return TypedResults.Ok(ToResponse(task));
+    }
+
+    private static async Task<Results<Ok<TaskResponse>, UnauthorizedHttpResult>>
+        MoveTaskAsync(
+            Guid id,
+            [FromBody] MoveTaskRequest request,
+            ClaimsPrincipal principal,
+            ICommandHandler<MoveTaskCommand, TaskDto> handler,
+            CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId))
+            return TypedResults.Unauthorized();
+
+        var task = await handler.HandleAsync(
+            new MoveTaskCommand(id, request.TargetColumnId, request.NewOrder, userId),
             cancellationToken);
 
         return TypedResults.Ok(ToResponse(task));

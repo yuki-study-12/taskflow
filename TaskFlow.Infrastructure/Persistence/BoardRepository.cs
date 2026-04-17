@@ -49,6 +49,12 @@ public class BoardRepository(AppDbContext context) : IBoardRepository
     public Task<BoardTask?> GetTaskByIdAsync(Guid taskId, CancellationToken cancellationToken = default)
         => context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId, cancellationToken);
 
+    public async Task<IReadOnlyList<BoardTask>> GetTasksByColumnIdAsync(Guid columnId, CancellationToken cancellationToken = default)
+        => await context.Tasks
+            .Where(t => t.ColumnId == columnId)
+            .OrderBy(t => t.Order)
+            .ToListAsync(cancellationToken);
+
     public async Task AddTaskAsync(BoardTask task, CancellationToken cancellationToken = default)
     {
         await context.Tasks.AddAsync(task, cancellationToken);
