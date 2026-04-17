@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<IBoardRepository, BoardRepository>();
 
         return services;
     }

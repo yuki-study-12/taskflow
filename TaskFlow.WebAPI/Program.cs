@@ -40,4 +40,7 @@ app.MapAuthEndpoints();
 // Project endpoints
 app.MapProjectEndpoints();
 
+// Board endpoints
+app.MapBoardEndpoints();
+
 app.Run();
