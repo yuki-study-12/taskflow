@@ -40,4 +40,16 @@ public class BoardTask : Common.Entity<Guid>
         AssigneeId = assigneeId;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void Move(Guid newColumnId, int newOrder)
+    {
+        if (newColumnId == Guid.Empty)
+            throw new ArgumentException("ColumnId cannot be empty.", nameof(newColumnId));
+        if (newOrder < 0)
+            throw new ArgumentOutOfRangeException(nameof(newOrder), "Order must be non-negative.");
+
+        ColumnId = newColumnId;
+        Order = newOrder;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

@@ -17,6 +17,7 @@ public interface IBoardRepository
 
     // Task
     Task<BoardTask?> GetTaskByIdAsync(Guid taskId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BoardTask>> GetTasksByColumnIdAsync(Guid columnId, CancellationToken cancellationToken = default);
     Task AddTaskAsync(BoardTask task, CancellationToken cancellationToken = default);
     Task UpdateTaskAsync(BoardTask task, CancellationToken cancellationToken = default);
     Task DeleteTaskAsync(Guid taskId, CancellationToken cancellationToken = default);
