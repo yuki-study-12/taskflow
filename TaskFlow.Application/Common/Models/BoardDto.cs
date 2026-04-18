@@ -1,5 +1,12 @@
 namespace TaskFlow.Application.Common.Models;
 
+public sealed record CommentDto(
+    Guid Id,
+    Guid TaskId,
+    Guid AuthorId,
+    string Body,
+    DateTime CreatedAt);
+
 public sealed record TaskDto(
     Guid Id,
     Guid ColumnId,

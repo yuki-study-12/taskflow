@@ -49,6 +49,11 @@ public class BoardRepository(AppDbContext context) : IBoardRepository
     public Task<BoardTask?> GetTaskByIdAsync(Guid taskId, CancellationToken cancellationToken = default)
         => context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId, cancellationToken);
 
+    public Task<BoardTask?> GetTaskWithCommentsAsync(Guid taskId, CancellationToken cancellationToken = default)
+        => context.Tasks
+            .Include(t => t.Comments)
+            .FirstOrDefaultAsync(t => t.Id == taskId, cancellationToken);
+
     public async Task<IReadOnlyList<BoardTask>> GetTasksByColumnIdAsync(Guid columnId, CancellationToken cancellationToken = default)
         => await context.Tasks
             .Where(t => t.ColumnId == columnId)
@@ -80,4 +85,30 @@ public class BoardRepository(AppDbContext context) : IBoardRepository
             .Join(context.Columns, t => t.ColumnId, c => c.Id, (t, c) => c)
             .Join(context.Boards, c => c.BoardId, b => b.Id, (c, b) => (Guid?)b.ProjectId)
             .FirstOrDefaultAsync(cancellationToken);
+
+    // Comment
+    public Task<TaskComment?> GetCommentByIdAsync(Guid commentId, CancellationToken cancellationToken = default)
+        => context.TaskComments.FirstOrDefaultAsync(c => c.Id == commentId, cancellationToken);
+
+    public async Task<IReadOnlyList<TaskComment>> GetCommentsByTaskIdAsync(Guid taskId, CancellationToken cancellationToken = default)
+        => await context.TaskComments
+            .Where(c => c.TaskId == taskId)
+            .OrderBy(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task AddCommentAsync(TaskComment comment, CancellationToken cancellationToken = default)
+    {
+        await context.TaskComments.AddAsync(comment, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteCommentAsync(Guid commentId, CancellationToken cancellationToken = default)
+    {
+        var comment = await GetCommentByIdAsync(commentId, cancellationToken);
+        if (comment is not null)
+        {
+            context.TaskComments.Remove(comment);
+            await context.SaveChangesAsync(cancellationToken);
+        }
+    }
 }

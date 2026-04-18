@@ -17,9 +17,16 @@ public interface IBoardRepository
 
     // Task
     Task<BoardTask?> GetTaskByIdAsync(Guid taskId, CancellationToken cancellationToken = default);
+    Task<BoardTask?> GetTaskWithCommentsAsync(Guid taskId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BoardTask>> GetTasksByColumnIdAsync(Guid columnId, CancellationToken cancellationToken = default);
     Task AddTaskAsync(BoardTask task, CancellationToken cancellationToken = default);
     Task UpdateTaskAsync(BoardTask task, CancellationToken cancellationToken = default);
     Task DeleteTaskAsync(Guid taskId, CancellationToken cancellationToken = default);
     Task<Guid?> GetProjectIdByTaskIdAsync(Guid taskId, CancellationToken cancellationToken = default);
+
+    // Comment
+    Task<TaskComment?> GetCommentByIdAsync(Guid commentId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TaskComment>> GetCommentsByTaskIdAsync(Guid taskId, CancellationToken cancellationToken = default);
+    Task AddCommentAsync(TaskComment comment, CancellationToken cancellationToken = default);
+    Task DeleteCommentAsync(Guid commentId, CancellationToken cancellationToken = default);
 }
