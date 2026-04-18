@@ -13,7 +13,8 @@ public sealed record MoveTaskCommand(
 
 public sealed class MoveTaskCommandHandler(
     IBoardRepository boardRepository,
-    IProjectRepository projectRepository)
+    IProjectRepository projectRepository,
+    IBoardNotificationService notificationService)
     : ICommandHandler<MoveTaskCommand, TaskDto>
 {
     public async Task<TaskDto> HandleAsync(
@@ -34,6 +35,9 @@ public sealed class MoveTaskCommandHandler(
 
         _ = await boardRepository.GetColumnByIdAsync(command.TargetColumnId, cancellationToken)
             ?? throw new NotFoundException("Column", command.TargetColumnId);
+
+        var board = await boardRepository.GetByProjectIdAsync(projectId, cancellationToken)
+            ?? throw new NotFoundException("Board", projectId);
 
         bool isSameColumn = task.ColumnId == command.TargetColumnId;
 
@@ -70,7 +74,9 @@ public sealed class MoveTaskCommandHandler(
 
         await boardRepository.UpdateTaskAsync(task, cancellationToken);
 
-        return new TaskDto(task.Id, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.CreatedAt, task.UpdatedAt);
+        var taskDto = new TaskDto(task.Id, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.CreatedAt, task.UpdatedAt);
+        await notificationService.NotifyTaskMovedAsync(board.Id, taskDto, cancellationToken);
+        return taskDto;
     }
 }
 

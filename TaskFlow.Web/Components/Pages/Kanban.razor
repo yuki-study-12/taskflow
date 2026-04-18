@@ -1,9 +1,20 @@
+@page "/kanban/{BoardId:guid}"
 @page "/kanban"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IConfiguration Configuration
+@implements IAsyncDisposable
 
 <PageTitle>かんばんボード - TaskFlow</PageTitle>
 
 <h1 class="mb-4">かんばんボード</h1>
+
+@if (_hubConnected)
+{
+    <div class="alert alert-success py-1 px-3 mb-3 d-inline-flex align-items-center gap-2" role="status">
+        <span class="badge bg-success rounded-circle p-1"></span> リアルタイム同期中
+    </div>
+}
 
 <div class="d-flex gap-3 overflow-auto pb-3" style="min-height: 500px;">
 
@@ -117,8 +128,13 @@
 }
 
 @code {
-    private record KanbanTask(string Title, string Description, string Assignee, string DueDate, string Status);
+    [Parameter] public Guid? BoardId { get; set; }
 
+    private record KanbanTask(string Title, string Description, string Assignee, string DueDate, string Status);
+    private record TaskMovedPayload(Guid Id, Guid ColumnId, string Title, string? Description, Guid? AssigneeId, int Order);
+
+    private HubConnection? _hubConnection;
+    private bool _hubConnected;
     private bool showModal = false;
     private KanbanTask? selectedTask;
 
@@ -142,6 +158,39 @@
         new("ソリューション構成", "クリーンアーキテクチャに基づくプロジェクト構成", "田中 太郎", "2026-03-10", "完了"),
     ];
 
+    protected override async Task OnInitializedAsync()
+    {
+        if (BoardId is null) return;
+
+        var hubUrl = Configuration["BoardHubUrl"] ?? "https://localhost:7001/hubs/board";
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<TaskMovedPayload>("TaskMoved", payload =>
+        {
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.Reconnected += _ =>
+        {
+            _hubConnected = true;
+            return InvokeAsync(StateHasChanged);
+        };
+
+        _hubConnection.Closed += _ =>
+        {
+            _hubConnected = false;
+            return InvokeAsync(StateHasChanged);
+        };
+
+        await _hubConnection.StartAsync();
+        await _hubConnection.SendAsync("JoinBoard", BoardId.ToString());
+        _hubConnected = true;
+    }
+
     private void OpenModal(KanbanTask task)
     {
         selectedTask = task;
@@ -160,4 +209,10 @@
         "進行中" => "bg-warning text-dark",
         _ => "bg-secondary"
     };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+            await _hubConnection.DisposeAsync();
+    }
 }

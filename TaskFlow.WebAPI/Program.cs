@@ -1,8 +1,11 @@
 using TaskFlow.Application;
+using TaskFlow.Application.Common.Interfaces;
 using TaskFlow.Infrastructure;
 using TaskFlow.WebAPI.Endpoints;
+using TaskFlow.WebAPI.Hubs;
 using TaskFlow.WebAPI.Middleware;
 using TaskFlow.WebAPI.OpenApi;
+using TaskFlow.WebAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +22,10 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 // Application + Infrastructure
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// SignalR
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IBoardNotificationService, BoardHubNotificationService>();
 
 var app = builder.Build();
 
@@ -42,5 +49,8 @@ app.MapProjectEndpoints();
 
 // Board endpoints
 app.MapBoardEndpoints();
+
+// SignalR hub
+app.MapHub<BoardHub>("/hubs/board");
 
 app.Run();
