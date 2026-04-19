@@ -13,6 +13,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<TaskFlow.Domain.Boards.Board> Boards => Set<TaskFlow.Domain.Boards.Board>();
     public DbSet<TaskFlow.Domain.Boards.Column> Columns => Set<TaskFlow.Domain.Boards.Column>();
     public DbSet<TaskFlow.Domain.Boards.BoardTask> Tasks => Set<TaskFlow.Domain.Boards.BoardTask>();
+    public DbSet<TaskFlow.Domain.Boards.TaskComment> TaskComments => Set<TaskFlow.Domain.Boards.TaskComment>();
 
 
     protected override void OnModelCreating(ModelBuilder builder)

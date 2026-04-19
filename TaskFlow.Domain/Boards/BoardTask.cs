@@ -1,7 +1,9 @@
 namespace TaskFlow.Domain.Boards;
 
-public class BoardTask : Common.Entity<Guid>
+public class BoardTask : Common.AggregateRoot<Guid>
 {
+    private readonly List<TaskComment> _comments = [];
+
     public Guid ColumnId { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
@@ -9,6 +11,8 @@ public class BoardTask : Common.Entity<Guid>
     public int Order { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+
+    public IReadOnlyList<TaskComment> Comments => _comments.AsReadOnly();
 
     private BoardTask(Guid id, Guid columnId, string title, string description, Guid? assigneeId, int order, DateTime createdAt)
         : base(id)
@@ -51,5 +55,18 @@ public class BoardTask : Common.Entity<Guid>
         ColumnId = newColumnId;
         Order = newOrder;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public TaskComment AddComment(Guid authorId, string body)
+    {
+        if (authorId == Guid.Empty)
+            throw new ArgumentException("AuthorId cannot be empty.", nameof(authorId));
+        if (string.IsNullOrWhiteSpace(body))
+            throw new ArgumentException("Comment body cannot be empty.", nameof(body));
+
+        var comment = new TaskComment(Guid.NewGuid(), Id, authorId, body, DateTime.UtcNow);
+        _comments.Add(comment);
+        RaiseDomainEvent(new Events.TaskCommentedEvent(Id, comment.Id, authorId, DateTime.UtcNow));
+        return comment;
     }
 }

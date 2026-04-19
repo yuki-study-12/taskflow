@@ -1,5 +1,12 @@
 namespace TaskFlow.Contracts.Boards;
 
+public sealed record CommentResponse(
+    Guid Id,
+    Guid TaskId,
+    Guid AuthorId,
+    string Body,
+    DateTime CreatedAt);
+
 public sealed record TaskResponse(
     Guid Id,
     Guid ColumnId,
