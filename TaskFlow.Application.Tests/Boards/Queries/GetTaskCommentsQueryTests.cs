@@ -28,17 +28,15 @@ public class GetTaskCommentsQueryTests
         var board = Board.Create(project.Id, "ボード");
         var column = Column.Create(board.Id, "ToDo", 0);
         var task = BoardTask.Create(column.Id, "タスク1", "説明", null, 0);
-        var comment1 = task.AddComment(ownerId, "コメント1");
-        var comment2 = task.AddComment(ownerId, "コメント2");
+        task.AddComment(ownerId, "コメント1");
+        task.AddComment(ownerId, "コメント2");
 
         await using var ctx = CreateContext();
         var repo = new BoardRepository(ctx);
         await new ProjectRepository(ctx).AddAsync(project);
         await repo.AddAsync(board);
         await repo.AddColumnAsync(column);
-        await repo.AddTaskAsync(task);
-        await repo.AddCommentAsync(comment1);
-        await repo.AddCommentAsync(comment2);
+        await repo.AddTaskAsync(task);  // コメント2件もカスケード保存される
         return (project, task, ownerId);
     }
 

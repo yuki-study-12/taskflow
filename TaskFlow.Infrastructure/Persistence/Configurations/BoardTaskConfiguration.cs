@@ -23,5 +23,10 @@ public sealed class BoardTaskConfiguration : IEntityTypeConfiguration<BoardTask>
         builder.Property(t => t.Order).IsRequired();
         builder.Property(t => t.CreatedAt).IsRequired();
         builder.Property(t => t.UpdatedAt).IsRequired();
+
+        builder.HasMany(t => t.Comments)
+            .WithOne()
+            .HasForeignKey(c => c.TaskId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

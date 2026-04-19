@@ -35,8 +35,7 @@ public class DeleteCommentCommandTests
         await new ProjectRepository(ctx).AddAsync(project);
         await repo.AddAsync(board);
         await repo.AddColumnAsync(column);
-        await repo.AddTaskAsync(task);
-        await repo.AddCommentAsync(comment);
+        await repo.AddTaskAsync(task);  // コメントもカスケード保存される
         return (project, task, comment, ownerId);
     }
 
