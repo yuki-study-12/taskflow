@@ -17,6 +17,7 @@ public static class DependencyInjection
 
         RegisterCommandHandlers(services, assembly);
         services.RegisterHandlers(assembly, typeof(IQueryHandler<,>));
+        services.RegisterHandlers(assembly, typeof(INotificationHandler<>));
 
         return services;
     }

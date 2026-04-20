@@ -57,6 +57,19 @@ public static class BoardEndpoints
         taskGroup.MapDelete("/{id:guid}", DeleteTaskAsync)
             .WithName("DeleteTask");
 
+        taskGroup.MapGet("/{id:guid}/comments", GetTaskCommentsAsync)
+            .WithName("GetTaskComments");
+
+        taskGroup.MapPost("/{id:guid}/comments", AddCommentAsync)
+            .WithName("AddComment");
+
+        var commentGroup = app.MapGroup("/api/comments")
+            .WithTags("Boards")
+            .RequireAuthorization();
+
+        commentGroup.MapDelete("/{id:guid}", DeleteCommentAsync)
+            .WithName("DeleteComment");
+
         return app;
     }
 
@@ -211,6 +224,54 @@ public static class BoardEndpoints
         return TypedResults.NoContent();
     }
 
+    private static async Task<Results<Ok<IReadOnlyList<CommentResponse>>, UnauthorizedHttpResult>>
+        GetTaskCommentsAsync(
+            Guid id,
+            ClaimsPrincipal principal,
+            IQueryHandler<GetTaskCommentsQuery, IReadOnlyList<CommentDto>> handler,
+            CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId))
+            return TypedResults.Unauthorized();
+
+        var comments = await handler.HandleAsync(new GetTaskCommentsQuery(id, userId), cancellationToken);
+
+        var response = comments.Select(ToResponse).ToList();
+        return TypedResults.Ok<IReadOnlyList<CommentResponse>>(response);
+    }
+
+    private static async Task<Results<Created<CommentResponse>, UnauthorizedHttpResult>>
+        AddCommentAsync(
+            Guid id,
+            [FromBody] AddCommentRequest request,
+            ClaimsPrincipal principal,
+            ICommandHandler<AddCommentCommand, CommentDto> handler,
+            CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId))
+            return TypedResults.Unauthorized();
+
+        var comment = await handler.HandleAsync(new AddCommentCommand(id, request.Body, userId), cancellationToken);
+
+        var response = ToResponse(comment);
+        return TypedResults.Created($"/api/comments/{comment.Id}", response);
+    }
+
+    private static async Task<Results<NoContent, UnauthorizedHttpResult>>
+        DeleteCommentAsync(
+            Guid id,
+            ClaimsPrincipal principal,
+            ICommandHandler<DeleteCommentCommand, bool> handler,
+            CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId))
+            return TypedResults.Unauthorized();
+
+        await handler.HandleAsync(new DeleteCommentCommand(id, userId), cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
     private static BoardResponse ToResponse(BoardDto dto) =>
         new(dto.Id, dto.ProjectId, dto.Name,
             dto.Columns.Select(ToResponse).ToList());
@@ -221,6 +282,9 @@ public static class BoardEndpoints
 
     private static TaskResponse ToResponse(TaskDto dto) =>
         new(dto.Id, dto.ColumnId, dto.Title, dto.Description, dto.AssigneeId, dto.Order, dto.CreatedAt, dto.UpdatedAt);
+
+    private static CommentResponse ToResponse(CommentDto dto) =>
+        new(dto.Id, dto.TaskId, dto.AuthorId, dto.Body, dto.CreatedAt);
 
     private static bool TryGetUserId(ClaimsPrincipal principal, out Guid userId)
     {

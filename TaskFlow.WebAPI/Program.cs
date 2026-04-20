@@ -26,6 +26,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // SignalR
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IBoardNotificationService, BoardHubNotificationService>();
+builder.Services.AddScoped<INotificationHubService, NotificationHubService>();
 
 var app = builder.Build();
 
@@ -50,7 +51,11 @@ app.MapProjectEndpoints();
 // Board endpoints
 app.MapBoardEndpoints();
 
-// SignalR hub
+// Notification endpoints
+app.MapNotificationEndpoints();
+
+// SignalR hubs
 app.MapHub<BoardHub>("/hubs/board");
+app.MapHub<NotificationHub>("/hubs/notification");
 
 app.Run();

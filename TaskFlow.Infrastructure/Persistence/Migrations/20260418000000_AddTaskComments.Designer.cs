@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TaskFlow.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using TaskFlow.Infrastructure.Persistence;
 namespace TaskFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260418000000_AddTaskComments")]
+    partial class AddTaskComments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -187,9 +190,6 @@ namespace TaskFlow.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("CreatorId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2000)
@@ -260,38 +260,6 @@ namespace TaskFlow.Infrastructure.Persistence.Migrations
                     b.HasIndex("TaskId");
 
                     b.ToTable("TaskComments", (string)null);
-                });
-
-            modelBuilder.Entity("TaskFlow.Domain.Notifications.Notification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid>("RelatedEntityId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "IsRead");
-
-                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Projects.Project", b =>
@@ -469,15 +437,6 @@ namespace TaskFlow.Infrastructure.Persistence.Migrations
                     b.Navigation("Comments");
                 });
 
-            modelBuilder.Entity("TaskFlow.Domain.Boards.TaskComment", b =>
-                {
-                    b.HasOne("TaskFlow.Domain.Boards.BoardTask", null)
-                        .WithMany("Comments")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("TaskFlow.Domain.Boards.Column", b =>
                 {
                     b.HasOne("TaskFlow.Domain.Boards.Board", null)
@@ -487,6 +446,15 @@ namespace TaskFlow.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("TaskFlow.Domain.Boards.TaskComment", b =>
+                {
+                    b.HasOne("TaskFlow.Domain.Boards.BoardTask", null)
+                        .WithMany("Comments")
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TaskFlow.Domain.Projects.Project", b =>

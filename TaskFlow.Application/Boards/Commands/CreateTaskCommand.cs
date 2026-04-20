@@ -35,7 +35,7 @@ public sealed class CreateTaskCommandHandler(
             throw new ForbiddenAccessException();
 
         var order = column.Tasks.Count;
-        var task = BoardTask.Create(command.ColumnId, command.Title, command.Description, command.AssigneeId, order);
+        var task = BoardTask.Create(command.ColumnId, command.Title, command.Description, command.AssigneeId, order, command.UserId);
         await boardRepository.AddTaskAsync(task, cancellationToken);
 
         return new TaskDto(task.Id, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.CreatedAt, task.UpdatedAt);

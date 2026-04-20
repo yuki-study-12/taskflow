@@ -75,6 +75,8 @@ public static class DependencyInjection
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IBoardRepository, BoardRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
         return services;
     }
