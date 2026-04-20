@@ -1,4 +1,5 @@
 using TaskFlow.Domain.Boards.Events;
+using TaskFlow.Domain.Tasks.Events;
 
 namespace TaskFlow.Domain.Boards;
 
