@@ -1,3 +1,6 @@
+using TaskFlow.Domain.Boards.Events;
+using TaskFlow.Domain.Tasks.Events;
+
 namespace TaskFlow.Domain.Boards;
 
 public class BoardTask : Common.AggregateRoot<Guid>
@@ -8,19 +11,21 @@ public class BoardTask : Common.AggregateRoot<Guid>
     public string Title { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public Guid? AssigneeId { get; private set; }
+    public Guid CreatorId { get; private set; }
     public int Order { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
     public IReadOnlyList<TaskComment> Comments => _comments.AsReadOnly();
 
-    private BoardTask(Guid id, Guid columnId, string title, string description, Guid? assigneeId, int order, DateTime createdAt)
+    private BoardTask(Guid id, Guid columnId, string title, string description, Guid? assigneeId, Guid creatorId, int order, DateTime createdAt)
         : base(id)
     {
         ColumnId = columnId;
         Title = title;
         Description = description;
         AssigneeId = assigneeId;
+        CreatorId = creatorId;
         Order = order;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
@@ -29,20 +34,24 @@ public class BoardTask : Common.AggregateRoot<Guid>
     // EF Core 用
     private BoardTask() { }
 
-    public static BoardTask Create(Guid columnId, string title, string description, Guid? assigneeId, int order)
+    public static BoardTask Create(Guid columnId, string title, string description, Guid? assigneeId, int order, Guid creatorId = default)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Task title cannot be empty.", nameof(title));
 
-        return new BoardTask(Guid.NewGuid(), columnId, title, description ?? string.Empty, assigneeId, order, DateTime.UtcNow);
+        return new BoardTask(Guid.NewGuid(), columnId, title, description ?? string.Empty, assigneeId, creatorId, order, DateTime.UtcNow);
     }
 
     public void Update(string title, string description, Guid? assigneeId)
     {
+        var previousAssigneeId = AssigneeId;
         Title = title;
         Description = description ?? string.Empty;
         AssigneeId = assigneeId;
         UpdatedAt = DateTime.UtcNow;
+
+        if (assigneeId.HasValue && assigneeId != previousAssigneeId)
+            RaiseDomainEvent(new TaskAssignedEvent(Id, assigneeId.Value, DateTime.UtcNow));
     }
 
     public void Move(Guid newColumnId, int newOrder)
@@ -66,7 +75,7 @@ public class BoardTask : Common.AggregateRoot<Guid>
 
         var comment = new TaskComment(Guid.NewGuid(), Id, authorId, body, DateTime.UtcNow);
         _comments.Add(comment);
-        RaiseDomainEvent(new Events.TaskCommentedEvent(Id, comment.Id, authorId, DateTime.UtcNow));
+        RaiseDomainEvent(new TaskCommentedEvent(Id, comment.Id, authorId, DateTime.UtcNow));
         return comment;
     }
 }
