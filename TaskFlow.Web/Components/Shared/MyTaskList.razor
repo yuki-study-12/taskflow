@@ -1,0 +1,39 @@
+<div class="fw-semibold mb-3">自分のタスク</div>
+
+@if (Tasks.Count == 0)
+{
+    <p class="text-muted">担当しているタスクはありません。</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>タスク名</th>
+                        <th>プロジェクト</th>
+                        <th>ステータス</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var task in Tasks)
+                    {
+                        <tr>
+                            <td>
+                                <a href="@($"/kanban/{task.ProjectId}")" class="text-decoration-none">@task.Title</a>
+                            </td>
+                            <td>@task.ProjectName</td>
+                            <td><span class="badge bg-secondary">@task.ColumnName</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<MyTaskResponse> Tasks { get; set; } = [];
+}

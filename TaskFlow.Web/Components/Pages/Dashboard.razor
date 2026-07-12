@@ -1,119 +1,81 @@
 @page "/"
 @page "/dashboard"
+@inject ProjectService ProjectService
+@inject TaskService TaskService
 
 <PageTitle>ダッシュボード - TaskFlow</PageTitle>
 
 <h1 class="mb-4">ダッシュボード</h1>
 
-<!-- 統計カード -->
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card border-primary">
-            <div class="card-body text-center">
-                <h2 class="display-4 fw-bold text-primary">24</h2>
-                <p class="card-text text-muted mb-0">全タスク</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card border-warning">
-            <div class="card-body text-center">
-                <h2 class="display-4 fw-bold text-warning">8</h2>
-                <p class="card-text text-muted mb-0">進行中</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card border-success">
-            <div class="card-body text-center">
-                <h2 class="display-4 fw-bold text-success">12</h2>
-                <p class="card-text text-muted mb-0">完了</p>
-            </div>
-        </div>
-    </div>
-</div>
+@if (isLoading)
+{
+    <p class="text-muted">読み込み中...</p>
+}
+else
+{
+    @if (loadError is not null)
+    {
+        <div class="alert alert-danger">@loadError</div>
+    }
 
-<!-- 最近のタスク & プロジェクト一覧 -->
-<div class="row g-3">
-    <div class="col-md-7">
-        <div class="card">
-            <div class="card-header fw-semibold">最近のタスク</div>
-            <div class="card-body p-0">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>タスク名</th>
-                            <th>プロジェクト</th>
-                            <th>ステータス</th>
-                            <th>期限</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var task in recentTasks)
-                        {
-                            <tr>
-                                <td>@task.Title</td>
-                                <td>@task.Project</td>
-                                <td>
-                                    <span class="badge @GetStatusBadge(task.Status)">@task.Status</span>
-                                </td>
-                                <td>@task.Due</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+    <div class="row g-3">
+        <div class="col-md-7">
+            <ProjectCardList Projects="projects" OnCreateClicked="OpenCreateModal" />
+        </div>
+        <div class="col-md-5">
+            <MyTaskList Tasks="myTasks" />
         </div>
     </div>
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header fw-semibold">プロジェクト</div>
-            <ul class="list-group list-group-flush">
-                @foreach (var project in projects)
-                {
-                    <li class="list-group-item">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>@project.Name</span>
-                            <small class="text-muted">@project.Progress%</small>
-                        </div>
-                        <div class="progress" style="height: 6px;">
-                            <div class="progress-bar" role="progressbar"
-                                 style="width: @project.Progress%;"
-                                 aria-valuenow="@project.Progress" aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                    </li>
-                }
-            </ul>
-        </div>
-    </div>
-</div>
+}
+
+@if (showCreateModal)
+{
+    <CreateProjectModal OnClose="CloseCreateModal" OnCreated="HandleProjectCreatedAsync" />
+}
 
 @code {
-    private record TaskItem(string Title, string Project, string Status, string Due);
-    private record ProjectItem(string Name, int Progress);
+    private IReadOnlyList<ProjectResponse> projects = [];
+    private IReadOnlyList<MyTaskResponse> myTasks = [];
+    private bool isLoading = true;
+    private string? loadError;
+    private bool showCreateModal;
 
-    private List<TaskItem> recentTasks =
-    [
-        new("ログイン画面デザイン", "TaskFlow", "完了", "2026-03-20"),
-        new("APIエンドポイント実装", "TaskFlow", "進行中", "2026-03-28"),
-        new("データベース設計", "TaskFlow", "完了", "2026-03-15"),
-        new("かんばんボードUI", "TaskFlow", "進行中", "2026-04-01"),
-        new("通知機能実装", "TaskFlow", "未着手", "2026-04-10"),
-    ];
-
-    private List<ProjectItem> projects =
-    [
-        new("TaskFlow", 65),
-        new("社内ポータル", 30),
-        new("モバイルアプリ", 10),
-        new("データ分析基盤", 80),
-    ];
-
-    private string GetStatusBadge(string status) => status switch
+    protected override async Task OnInitializedAsync()
     {
-        "完了" => "bg-success",
-        "進行中" => "bg-warning text-dark",
-        _ => "bg-secondary"
-    };
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        isLoading = true;
+        loadError = null;
+
+        var projectsTask = ProjectService.GetProjectsAsync();
+        var tasksTask = TaskService.GetMyTasksAsync();
+        await Task.WhenAll(projectsTask, tasksTask);
+
+        var projectsResult = await projectsTask;
+        var tasksResult = await tasksTask;
+
+        if (projectsResult.Succeeded)
+            projects = projectsResult.Data!;
+        if (tasksResult.Succeeded)
+            myTasks = tasksResult.Data!;
+
+        if (!projectsResult.Succeeded || !tasksResult.Succeeded)
+            loadError = "データの取得に失敗しました。時間をおいて再度お試しください。";
+
+        isLoading = false;
+    }
+
+    private void OpenCreateModal() => showCreateModal = true;
+
+    private void CloseCreateModal() => showCreateModal = false;
+
+    private async Task HandleProjectCreatedAsync(ProjectResponse project)
+    {
+        projects = [.. projects, project];
+        showCreateModal = false;
+        await Task.CompletedTask;
+    }
 }
