@@ -1,10 +1,24 @@
+using Microsoft.AspNetCore.Components.Authorization;
 using TaskFlow.Web.Components;
+using TaskFlow.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<CustomAuthStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<CustomAuthStateProvider>());
+builder.Services.AddScoped<BearerTokenHandler>();
+builder.Services.AddScoped<AuthService>();
+
+builder.Services.AddHttpClient("TaskFlowApi", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7192");
+}).AddHttpMessageHandler<BearerTokenHandler>();
 
 var app = builder.Build();
 

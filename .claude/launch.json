@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "TaskFlow.WebAPI",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "TaskFlow.WebAPI", "--launch-profile", "https"],
+      "port": 7192
+    },
+    {
+      "name": "TaskFlow.Web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "TaskFlow.Web", "--launch-profile", "http"],
+      "port": 5107
+    }
+  ]
+}
