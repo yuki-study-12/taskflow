@@ -45,6 +45,9 @@ public static class BoardEndpoints
             .WithTags("Boards")
             .RequireAuthorization();
 
+        taskGroup.MapGet("/mine", GetMyTasksAsync)
+            .WithName("GetMyTasks");
+
         taskGroup.MapGet("/{id:guid}", GetTaskByIdAsync)
             .WithName("GetTaskById");
 
@@ -156,6 +159,21 @@ public static class BoardEndpoints
 
         var response = ToResponse(task);
         return TypedResults.Created($"/api/tasks/{task.Id}", response);
+    }
+
+    private static async Task<Results<Ok<IReadOnlyList<MyTaskResponse>>, UnauthorizedHttpResult>>
+        GetMyTasksAsync(
+            ClaimsPrincipal principal,
+            IQueryHandler<GetMyTasksQuery, IReadOnlyList<MyTaskDto>> handler,
+            CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId))
+            return TypedResults.Unauthorized();
+
+        var tasks = await handler.HandleAsync(new GetMyTasksQuery(userId), cancellationToken);
+
+        var response = tasks.Select(ToResponse).ToList();
+        return TypedResults.Ok<IReadOnlyList<MyTaskResponse>>(response);
     }
 
     private static async Task<Results<Ok<TaskResponse>, UnauthorizedHttpResult>>
@@ -282,6 +300,9 @@ public static class BoardEndpoints
 
     private static TaskResponse ToResponse(TaskDto dto) =>
         new(dto.Id, dto.ColumnId, dto.Title, dto.Description, dto.AssigneeId, dto.Order, dto.CreatedAt, dto.UpdatedAt);
+
+    private static MyTaskResponse ToResponse(MyTaskDto dto) =>
+        new(dto.Id, dto.Title, dto.Description, dto.ProjectId, dto.ProjectName, dto.ColumnId, dto.ColumnName, dto.CreatedAt, dto.UpdatedAt);
 
     private static CommentResponse ToResponse(CommentDto dto) =>
         new(dto.Id, dto.TaskId, dto.AuthorId, dto.Body, dto.CreatedAt);

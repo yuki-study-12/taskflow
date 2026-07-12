@@ -10,7 +10,7 @@
     {
       "name": "TaskFlow.Web",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "TaskFlow.Web", "--launch-profile", "http"],
+      "runtimeArgs": ["run", "--project", "TaskFlow.Web", "--launch-profile", "http", "--", "--ApiBaseUrl=http://localhost:5075"],
       "port": 5107
     }
   ]

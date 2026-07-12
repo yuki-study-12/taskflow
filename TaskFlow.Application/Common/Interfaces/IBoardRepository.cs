@@ -19,10 +19,15 @@ public interface IBoardRepository
     Task<BoardTask?> GetTaskByIdAsync(Guid taskId, CancellationToken cancellationToken = default);
     Task<BoardTask?> GetTaskWithCommentsAsync(Guid taskId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BoardTask>> GetTasksByColumnIdAsync(Guid columnId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BoardTask>> GetTasksByAssigneeIdAsync(Guid assigneeId, CancellationToken cancellationToken = default);
     Task AddTaskAsync(BoardTask task, CancellationToken cancellationToken = default);
     Task UpdateTaskAsync(BoardTask task, CancellationToken cancellationToken = default);
     Task DeleteTaskAsync(Guid taskId, CancellationToken cancellationToken = default);
     Task<Guid?> GetProjectIdByTaskIdAsync(Guid taskId, CancellationToken cancellationToken = default);
+
+    // Batch lookups (read-side helpers)
+    Task<IReadOnlyList<Column>> GetColumnsByIdsAsync(IReadOnlyCollection<Guid> columnIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Board>> GetBoardsByIdsAsync(IReadOnlyCollection<Guid> boardIds, CancellationToken cancellationToken = default);
 
     // Comment
     Task<TaskComment?> GetCommentByIdAsync(Guid commentId, CancellationToken cancellationToken = default);

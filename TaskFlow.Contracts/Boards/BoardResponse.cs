@@ -29,3 +29,14 @@ public sealed record BoardResponse(
     Guid ProjectId,
     string Name,
     IReadOnlyList<ColumnResponse> Columns);
+
+public sealed record MyTaskResponse(
+    Guid Id,
+    string Title,
+    string Description,
+    Guid ProjectId,
+    string ProjectName,
+    Guid ColumnId,
+    string ColumnName,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);

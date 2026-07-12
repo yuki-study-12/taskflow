@@ -29,3 +29,14 @@ public sealed record BoardDto(
     Guid ProjectId,
     string Name,
     IReadOnlyList<ColumnDto> Columns);
+
+public sealed record MyTaskDto(
+    Guid Id,
+    string Title,
+    string Description,
+    Guid ProjectId,
+    string ProjectName,
+    Guid ColumnId,
+    string ColumnName,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);

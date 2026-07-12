@@ -1,0 +1,86 @@
+<div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <EditForm Model="model" OnValidSubmit="HandleSubmitAsync">
+                <DataAnnotationsValidator />
+                <div class="modal-header">
+                    <h5 class="modal-title">新規プロジェクト</h5>
+                    <button type="button" class="btn-close" @onclick="HandleCancel" aria-label="閉じる"></button>
+                </div>
+                <div class="modal-body">
+                    @if (errors.Count > 0)
+                    {
+                        <div class="alert alert-danger py-2">
+                            <ul class="mb-0 ps-3">
+                                @foreach (var error in errors)
+                                {
+                                    <li>@error</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label for="projectName" class="form-label">プロジェクト名</label>
+                        <InputText @bind-Value="model.Name" class="form-control" id="projectName" />
+                        <ValidationMessage For="() => model.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectDescription" class="form-label">説明</label>
+                        <InputTextArea @bind-Value="model.Description" class="form-control" id="projectDescription" rows="3" />
+                        <ValidationMessage For="() => model.Description" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel">キャンセル</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">作成</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<ProjectResponse> OnCreated { get; set; }
+
+    [Inject]
+    private ProjectService ProjectService { get; set; } = default!;
+
+    private readonly CreateProjectModel model = new();
+    private List<string> errors = [];
+    private bool isSubmitting;
+
+    private async Task HandleSubmitAsync()
+    {
+        isSubmitting = true;
+        errors = [];
+
+        var result = await ProjectService.CreateProjectAsync(model.Name, model.Description);
+        if (result.Succeeded)
+        {
+            await OnCreated.InvokeAsync(result.Data);
+        }
+        else
+        {
+            errors = [.. result.Errors];
+            isSubmitting = false;
+        }
+    }
+
+    private async Task HandleCancel() => await OnClose.InvokeAsync();
+
+    private sealed class CreateProjectModel
+    {
+        [Required(ErrorMessage = "プロジェクト名を入力してください。")]
+        [StringLength(200, ErrorMessage = "プロジェクト名は200文字以内で入力してください。")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "説明を入力してください。")]
+        [StringLength(1000, ErrorMessage = "説明は1000文字以内で入力してください。")]
+        public string Description { get; set; } = string.Empty;
+    }
+}
