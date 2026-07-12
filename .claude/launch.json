@@ -4,8 +4,8 @@
     {
       "name": "TaskFlow.WebAPI",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "TaskFlow.WebAPI", "--launch-profile", "https"],
-      "port": 7192
+      "runtimeArgs": ["run", "--project", "TaskFlow.WebAPI", "--launch-profile", "http"],
+      "port": 5075
     },
     {
       "name": "TaskFlow.Web",
