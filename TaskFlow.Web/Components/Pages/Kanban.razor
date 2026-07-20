@@ -1,95 +1,45 @@
-@page "/kanban/{BoardId:guid}"
-@page "/kanban"
+@page "/projects/{ProjectId:guid}/board"
 @using Microsoft.AspNetCore.SignalR.Client
+@inject BoardService BoardService
 @inject IConfiguration Configuration
 @implements IAsyncDisposable
 
 <PageTitle>かんばんボード - TaskFlow</PageTitle>
 
-<h1 class="mb-4">かんばんボード</h1>
+<h1 class="mb-4">@(boardName ?? "かんばんボード")</h1>
 
-@if (_hubConnected)
+@if (isLoading)
 {
-    <div class="alert alert-success py-1 px-3 mb-3 d-inline-flex align-items-center gap-2" role="status">
-        <span class="badge bg-success rounded-circle p-1"></span> リアルタイム同期中
+    <p class="text-muted">読み込み中...</p>
+}
+else if (loadError is not null)
+{
+    <div class="alert alert-danger">@loadError</div>
+}
+else if (boardId is null)
+{
+    <div class="alert alert-secondary">
+        このプロジェクトにはまだボードがありません。
+        <button class="btn btn-sm btn-primary ms-2" @onclick="CreateDefaultBoardAsync" disabled="@isCreatingBoard">
+            ボードを作成
+        </button>
     </div>
 }
-
-<div class="d-flex gap-3 overflow-auto pb-3" style="min-height: 500px;">
-
-    <!-- Todo 列 -->
-    <div class="kanban-column flex-shrink-0">
-        <div class="card h-100">
-            <div class="card-header bg-secondary text-white fw-semibold">
-                Todo (@todoTasks.Count)
-            </div>
-            <div class="card-body d-flex flex-column gap-2">
-                @foreach (var task in todoTasks)
-                {
-                    <div class="card border-secondary">
-                        <div class="card-body p-2">
-                            <h6 class="card-title mb-1">@task.Title</h6>
-                            <p class="card-text small text-muted mb-2">期限: @task.DueDate</p>
-                            <button class="btn btn-sm btn-outline-secondary"
-                                    @onclick="() => OpenModal(task)">詳細</button>
-                        </div>
-                    </div>
-                }
-            </div>
+else
+{
+    @if (hubConnected)
+    {
+        <div class="alert alert-success py-1 px-3 mb-3 d-inline-flex align-items-center gap-2" role="status">
+            <span class="badge bg-success rounded-circle p-1"></span> リアルタイム同期中
         </div>
-    </div>
+    }
 
-    <!-- 進行中 列 -->
-    <div class="kanban-column flex-shrink-0">
-        <div class="card h-100">
-            <div class="card-header bg-warning text-dark fw-semibold">
-                進行中 (@inProgressTasks.Count)
-            </div>
-            <div class="card-body d-flex flex-column gap-2">
-                @foreach (var task in inProgressTasks)
-                {
-                    <div class="card border-warning">
-                        <div class="card-body p-2">
-                            <h6 class="card-title mb-1">@task.Title</h6>
-                            <p class="card-text small text-muted mb-2">期限: @task.DueDate</p>
-                            <button class="btn btn-sm btn-outline-warning"
-                                    @onclick="() => OpenModal(task)">詳細</button>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
+    <KanbanBoard Columns="columns" OnCardMoved="HandleCardMovedAsync" OnCardClicked="OpenModal" />
+}
 
-    <!-- 完了 列 -->
-    <div class="kanban-column flex-shrink-0">
-        <div class="card h-100">
-            <div class="card-header bg-success text-white fw-semibold">
-                完了 (@doneTasks.Count)
-            </div>
-            <div class="card-body d-flex flex-column gap-2">
-                @foreach (var task in doneTasks)
-                {
-                    <div class="card border-success">
-                        <div class="card-body p-2">
-                            <h6 class="card-title mb-1">@task.Title</h6>
-                            <p class="card-text small text-muted mb-2">期限: @task.DueDate</p>
-                            <button class="btn btn-sm btn-outline-success"
-                                    @onclick="() => OpenModal(task)">詳細</button>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-
-</div>
-
-<!-- タスク詳細モーダル -->
 @if (showModal && selectedTask is not null)
 {
-    <div class="modal show d-block" tabindex="-1"
-         style="background: rgba(0,0,0,0.5);">
+    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -105,17 +55,10 @@
                         <dd class="col-sm-8">@selectedTask.Description</dd>
 
                         <dt class="col-sm-4">担当者</dt>
-                        <dd class="col-sm-8">@selectedTask.Assignee</dd>
+                        <dd class="col-sm-8">@(selectedTask.AssigneeId is null ? "未割り当て" : selectedTask.AssigneeId.ToString())</dd>
 
-                        <dt class="col-sm-4">期限</dt>
-                        <dd class="col-sm-8">@selectedTask.DueDate</dd>
-
-                        <dt class="col-sm-4">ステータス</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge @GetStatusBadge(selectedTask.Status)">
-                                @selectedTask.Status
-                            </span>
-                        </dd>
+                        <dt class="col-sm-4">列</dt>
+                        <dd class="col-sm-8">@GetColumnName(selectedTask.Id)</dd>
                     </dl>
                 </div>
                 <div class="modal-footer">
@@ -127,70 +70,193 @@
 }
 
 @code {
-    [Parameter] public Guid? BoardId { get; set; }
+    [Parameter]
+    public Guid ProjectId { get; set; }
 
-    private record KanbanTask(string Title, string Description, string Assignee, string DueDate, string Status);
-    private record TaskMovedPayload(Guid Id, Guid ColumnId, string Title, string? Description, Guid? AssigneeId, int Order);
+    private List<KanbanColumnState> columns = [];
+    private Guid? boardId;
+    private string? boardName;
+    private bool isLoading = true;
+    private bool isCreatingBoard;
+    private string? loadError;
+    private HubConnection? hubConnection;
+    private bool hubConnected;
+    private bool showModal;
+    private KanbanTaskState? selectedTask;
 
-    private HubConnection? _hubConnection;
-    private bool _hubConnected;
-    private bool showModal = false;
-    private KanbanTask? selectedTask;
-
-    private List<KanbanTask> todoTasks =
-    [
-        new("通知機能実装", "プッシュ通知とメール通知の実装", "未割り当て", "2026-04-10", "未着手"),
-        new("レポート画面作成", "月次進捗レポートのUI設計", "田中 太郎", "2026-04-15", "未着手"),
-        new("テスト自動化", "E2Eテストの整備", "鈴木 花子", "2026-04-20", "未着手"),
-    ];
-
-    private List<KanbanTask> inProgressTasks =
-    [
-        new("APIエンドポイント実装", "タスクCRUD APIの実装", "山田 次郎", "2026-03-28", "進行中"),
-        new("かんばんボードUI", "ドラッグ&ドロップ対応のUI実装", "田中 太郎", "2026-04-01", "進行中"),
-    ];
-
-    private List<KanbanTask> doneTasks =
-    [
-        new("ログイン画面デザイン", "Bootstrap を使ったレスポンシブなログインフォーム", "山田 次郎", "2026-03-20", "完了"),
-        new("データベース設計", "ERDの作成とマイグレーション設定", "鈴木 花子", "2026-03-15", "完了"),
-        new("ソリューション構成", "クリーンアーキテクチャに基づくプロジェクト構成", "田中 太郎", "2026-03-10", "完了"),
-    ];
+    private sealed record TaskMovedPayload(Guid Id, Guid ColumnId, string Title, string? Description, Guid? AssigneeId, int Order);
 
     protected override async Task OnInitializedAsync()
     {
-        if (BoardId is null) return;
+        await LoadBoardAsync();
+    }
 
-        var hubUrl = Configuration["BoardHubUrl"] ?? "https://localhost:7001/hubs/board";
+    private async Task LoadBoardAsync()
+    {
+        isLoading = true;
+        loadError = null;
 
-        _hubConnection = new HubConnectionBuilder()
+        var result = await BoardService.GetBoardAsync(ProjectId);
+        if (!result.Succeeded)
+        {
+            // ボード未作成の場合もエラー扱いで返るため、空状態として案内する
+            boardId = null;
+            isLoading = false;
+            return;
+        }
+
+        ApplyBoard(result.Data!);
+        isLoading = false;
+
+        await ConnectSignalRAsync();
+    }
+
+    private void ApplyBoard(BoardResponse board)
+    {
+        boardId = board.Id;
+        boardName = board.Name;
+        columns = board.Columns
+            .OrderBy(c => c.Order)
+            .Select(c => new KanbanColumnState
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Order = c.Order,
+                Tasks = [.. c.Tasks
+                    .OrderBy(t => t.Order)
+                    .Select(t => new KanbanTaskState
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        Description = t.Description,
+                        AssigneeId = t.AssigneeId,
+                    })],
+            })
+            .ToList();
+    }
+
+    private async Task CreateDefaultBoardAsync()
+    {
+        isCreatingBoard = true;
+
+        var boardResult = await BoardService.CreateBoardAsync(ProjectId, "ボード");
+        if (!boardResult.Succeeded)
+        {
+            loadError = "ボードの作成に失敗しました。";
+            isCreatingBoard = false;
+            return;
+        }
+
+        foreach (var name in new[] { "ToDo", "進行中", "完了" })
+            await BoardService.CreateColumnAsync(boardResult.Data!.Id, name);
+
+        isCreatingBoard = false;
+        await LoadBoardAsync();
+    }
+
+    private async Task ConnectSignalRAsync()
+    {
+        if (boardId is null)
+            return;
+
+        var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7192";
+        var hubUrl = $"{apiBaseUrl.TrimEnd('/')}/hubs/board";
+
+        hubConnection = new HubConnectionBuilder()
             .WithUrl(hubUrl)
             .WithAutomaticReconnect()
             .Build();
 
-        _hubConnection.On<TaskMovedPayload>("TaskMoved", payload =>
+        hubConnection.On<TaskMovedPayload>("TaskMoved", payload =>
         {
-            InvokeAsync(StateHasChanged);
+            ApplyRemoteMove(payload);
+            return InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.Reconnected += _ =>
+        hubConnection.Reconnected += _ =>
         {
-            _hubConnected = true;
+            hubConnected = true;
             return InvokeAsync(StateHasChanged);
         };
 
-        _hubConnection.Closed += _ =>
+        hubConnection.Closed += _ =>
         {
-            _hubConnected = false;
+            hubConnected = false;
             return InvokeAsync(StateHasChanged);
         };
 
-        await _hubConnection.StartAsync();
-        await _hubConnection.SendAsync("JoinBoard", BoardId.ToString());
-        _hubConnected = true;
+        try
+        {
+            await hubConnection.StartAsync();
+            await hubConnection.SendAsync("JoinBoard", boardId.Value.ToString());
+            hubConnected = true;
+        }
+        catch
+        {
+            hubConnected = false;
+        }
     }
 
-    private void OpenModal(KanbanTask task)
+    private void ApplyRemoteMove(TaskMovedPayload payload)
+    {
+        var task = RemoveTaskFromColumns(payload.Id) ?? new KanbanTaskState
+        {
+            Id = payload.Id,
+            Title = payload.Title,
+            Description = payload.Description ?? string.Empty,
+            AssigneeId = payload.AssigneeId,
+        };
+
+        task.Title = payload.Title;
+        task.Description = payload.Description ?? string.Empty;
+        task.AssigneeId = payload.AssigneeId;
+
+        var targetColumn = columns.FirstOrDefault(c => c.Id == payload.ColumnId);
+        if (targetColumn is null)
+            return;
+
+        var index = Math.Clamp(payload.Order, 0, targetColumn.Tasks.Count);
+        targetColumn.Tasks.Insert(index, task);
+    }
+
+    private async Task HandleCardMovedAsync((Guid TaskId, Guid TargetColumnId, int NewIndex) move)
+    {
+        // SortableJS が既にDOM上でカードを移動済みのため、モデル側も即座に合わせておく
+        var task = RemoveTaskFromColumns(move.TaskId);
+        var targetColumn = columns.FirstOrDefault(c => c.Id == move.TargetColumnId);
+        if (task is not null && targetColumn is not null)
+        {
+            var index = Math.Clamp(move.NewIndex, 0, targetColumn.Tasks.Count);
+            targetColumn.Tasks.Insert(index, task);
+        }
+
+        var result = await BoardService.MoveTaskAsync(move.TaskId, move.TargetColumnId, move.NewIndex);
+        if (!result.Succeeded)
+        {
+            // サーバー側と状態がズレた可能性があるため再取得する
+            await LoadBoardAsync();
+        }
+    }
+
+    private KanbanTaskState? RemoveTaskFromColumns(Guid taskId)
+    {
+        foreach (var column in columns)
+        {
+            var existing = column.Tasks.FirstOrDefault(t => t.Id == taskId);
+            if (existing is not null)
+            {
+                column.Tasks.Remove(existing);
+                return existing;
+            }
+        }
+
+        return null;
+    }
+
+    private string GetColumnName(Guid taskId) =>
+        columns.FirstOrDefault(c => c.Tasks.Any(t => t.Id == taskId))?.Name ?? "";
+
+    private void OpenModal(KanbanTaskState task)
     {
         selectedTask = task;
         showModal = true;
@@ -202,16 +268,9 @@
         selectedTask = null;
     }
 
-    private string GetStatusBadge(string status) => status switch
-    {
-        "完了" => "bg-success",
-        "進行中" => "bg-warning text-dark",
-        _ => "bg-secondary"
-    };
-
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection is not null)
-            await _hubConnection.DisposeAsync();
+        if (hubConnection is not null)
+            await hubConnection.DisposeAsync();
     }
 }

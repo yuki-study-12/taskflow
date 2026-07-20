@@ -58,3 +58,19 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.kanban-column {
+    width: 280px;
+}
+
+.kanban-column-list {
+    min-height: 60px;
+}
+
+.kanban-card {
+    cursor: grab;
+}
+
+.kanban-card-ghost {
+    opacity: 0.4;
+}

@@ -1,0 +1,16 @@
+<div class="card border-secondary kanban-card" data-task-id="@Task.Id" @onclick="() => OnClick.InvokeAsync(Task)">
+    <div class="card-body p-2">
+        <h6 class="card-title mb-1">@Task.Title</h6>
+        <p class="card-text small text-muted mb-0">
+            @(Task.AssigneeId is null ? "未割り当て" : "担当者あり")
+        </p>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public KanbanTaskState Task { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<KanbanTaskState> OnClick { get; set; }
+}

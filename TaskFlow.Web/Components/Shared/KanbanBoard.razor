@@ -1,0 +1,64 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+<div class="d-flex gap-3 overflow-auto pb-3" style="min-height: 500px;" @ref="boardElement">
+    @foreach (var column in Columns)
+    {
+        <KanbanColumn @key="column.Id" Column="column" OnCardClicked="OnCardClicked" />
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<KanbanColumnState> Columns { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<(Guid TaskId, Guid TargetColumnId, int NewIndex)> OnCardMoved { get; set; }
+
+    [Parameter]
+    public EventCallback<KanbanTaskState> OnCardClicked { get; set; }
+
+    private ElementReference boardElement;
+    private IJSObjectReference? module;
+    private DotNetObjectReference<KanbanBoard>? dotNetRef;
+    private bool sortableInitialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!sortableInitialized && Columns.Count > 0)
+        {
+            sortableInitialized = true;
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "./Components/Shared/KanbanBoard.razor.js");
+            dotNetRef = DotNetObjectReference.Create(this);
+            await module.InvokeVoidAsync("init", boardElement, dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCardDropped(string taskId, string targetColumnId, int newIndex)
+    {
+        if (Guid.TryParse(taskId, out var parsedTaskId) && Guid.TryParse(targetColumnId, out var parsedColumnId))
+        {
+            await OnCardMoved.InvokeAsync((parsedTaskId, parsedColumnId, newIndex));
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+        {
+            try
+            {
+                await module.InvokeVoidAsync("destroy", boardElement);
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // 回線切断済みの場合はクリーンアップ不要
+            }
+        }
+
+        dotNetRef?.Dispose();
+    }
+}
