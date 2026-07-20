@@ -21,7 +21,7 @@ else
                     {
                         <tr>
                             <td>
-                                <a href="@($"/kanban/{task.ProjectId}")" class="text-decoration-none">@task.Title</a>
+                                <a href="@($"/projects/{task.ProjectId}/board")" class="text-decoration-none">@task.Title</a>
                             </td>
                             <td>@task.ProjectName</td>
                             <td><span class="badge bg-secondary">@task.ColumnName</span></td>
