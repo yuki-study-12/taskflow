@@ -1,5 +1,6 @@
 using TaskFlow.Application.Common.Exceptions;
 using TaskFlow.Application.Projects.Queries;
+using TaskFlow.Application.Tests.TestDoubles;
 using TaskFlow.Domain.Projects;
 using TaskFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -44,7 +45,7 @@ public class GetProjectMembersQueryTests
         });
 
         await using var ctx = CreateContext();
-        var result = await new GetProjectMembersQueryHandler(new ProjectRepository(ctx))
+        var result = await new GetProjectMembersQueryHandler(new ProjectRepository(ctx), new FakeIdentityService())
             .HandleAsync(new GetProjectMembersQuery(project.Id, ownerId));
 
         Assert.Equal(3, result.Count);
@@ -61,7 +62,7 @@ public class GetProjectMembersQueryTests
         var project = await SeedProjectAsync(ownerId, p => p.AddMember(memberId, MemberRole.Member));
 
         await using var ctx = CreateContext();
-        var result = await new GetProjectMembersQueryHandler(new ProjectRepository(ctx))
+        var result = await new GetProjectMembersQueryHandler(new ProjectRepository(ctx), new FakeIdentityService())
             .HandleAsync(new GetProjectMembersQuery(project.Id, memberId));
 
         Assert.Equal(2, result.Count);
@@ -75,7 +76,7 @@ public class GetProjectMembersQueryTests
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => new GetProjectMembersQueryHandler(new ProjectRepository(ctx))
+            () => new GetProjectMembersQueryHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new GetProjectMembersQuery(project.Id, Guid.NewGuid())));
     }
 
@@ -84,8 +85,35 @@ public class GetProjectMembersQueryTests
     {
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<NotFoundException>(
-            () => new GetProjectMembersQueryHandler(new ProjectRepository(ctx))
+            () => new GetProjectMembersQueryHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new GetProjectMembersQuery(Guid.NewGuid(), Guid.NewGuid())));
+    }
+
+    [Fact]
+    public async Task HandleAsync_表示名が解決される()
+    {
+        var ownerId = Guid.NewGuid();
+        var project = await SeedProjectAsync(ownerId);
+        var identityService = new FakeIdentityService().WithUser(ownerId, "山田太郎");
+
+        await using var ctx = CreateContext();
+        var result = await new GetProjectMembersQueryHandler(new ProjectRepository(ctx), identityService)
+            .HandleAsync(new GetProjectMembersQuery(project.Id, ownerId));
+
+        Assert.Equal("山田太郎", result[0].DisplayName);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Identityに存在しないユーザー_不明なユーザーとして返る()
+    {
+        var ownerId = Guid.NewGuid();
+        var project = await SeedProjectAsync(ownerId);
+
+        await using var ctx = CreateContext();
+        var result = await new GetProjectMembersQueryHandler(new ProjectRepository(ctx), new FakeIdentityService())
+            .HandleAsync(new GetProjectMembersQuery(project.Id, ownerId));
+
+        Assert.Equal("不明なユーザー", result[0].DisplayName);
     }
 
     [Fact]
@@ -95,7 +123,7 @@ public class GetProjectMembersQueryTests
         var project = await SeedProjectAsync(ownerId);
 
         await using var ctx = CreateContext();
-        var result = await new GetProjectMembersQueryHandler(new ProjectRepository(ctx))
+        var result = await new GetProjectMembersQueryHandler(new ProjectRepository(ctx), new FakeIdentityService())
             .HandleAsync(new GetProjectMembersQuery(project.Id, ownerId));
 
         Assert.Single(result);

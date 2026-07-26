@@ -6,6 +6,8 @@ public sealed class KanbanTaskState
     public required string Title { get; set; }
     public required string Description { get; set; }
     public Guid? AssigneeId { get; set; }
+    public DateTime? DueDate { get; set; }
+    public string Priority { get; set; } = "Medium";
 }
 
 public sealed class KanbanColumnState

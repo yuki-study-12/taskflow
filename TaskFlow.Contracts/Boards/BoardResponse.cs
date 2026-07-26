@@ -4,6 +4,7 @@ public sealed record CommentResponse(
     Guid Id,
     Guid TaskId,
     Guid AuthorId,
+    string AuthorDisplayName,
     string Body,
     DateTime CreatedAt);
 
@@ -14,6 +15,8 @@ public sealed record TaskResponse(
     string Description,
     Guid? AssigneeId,
     int Order,
+    DateTime? DueDate,
+    string Priority,
     DateTime CreatedAt,
     DateTime UpdatedAt);
 

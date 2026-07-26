@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Boards.Queries;
 using TaskFlow.Application.Common.Exceptions;
+using TaskFlow.Application.Tests.TestDoubles;
 using TaskFlow.Domain.Boards;
 using TaskFlow.Domain.Projects;
 using TaskFlow.Infrastructure.Persistence;
@@ -49,7 +50,8 @@ public class GetTaskCommentsQueryTests
         await using var ctx = CreateContext();
         var result = await new GetTaskCommentsQueryHandler(
             new BoardRepository(ctx),
-            new ProjectRepository(ctx)).HandleAsync(query);
+            new ProjectRepository(ctx),
+            new FakeIdentityService()).HandleAsync(query);
 
         Assert.Equal(2, result.Count);
     }
@@ -63,7 +65,8 @@ public class GetTaskCommentsQueryTests
         await using var ctx = CreateContext();
         var result = await new GetTaskCommentsQueryHandler(
             new BoardRepository(ctx),
-            new ProjectRepository(ctx)).HandleAsync(query);
+            new ProjectRepository(ctx),
+            new FakeIdentityService()).HandleAsync(query);
 
         Assert.Contains(result, c => c.Body == "コメント1");
         Assert.Contains(result, c => c.Body == "コメント2");
@@ -88,7 +91,8 @@ public class GetTaskCommentsQueryTests
         await using var ctx2 = CreateContext();
         var result = await new GetTaskCommentsQueryHandler(
             new BoardRepository(ctx2),
-            new ProjectRepository(ctx2)).HandleAsync(new GetTaskCommentsQuery(task.Id, ownerId));
+            new ProjectRepository(ctx2),
+            new FakeIdentityService()).HandleAsync(new GetTaskCommentsQuery(task.Id, ownerId));
 
         Assert.Empty(result);
     }
@@ -102,7 +106,8 @@ public class GetTaskCommentsQueryTests
         await Assert.ThrowsAsync<NotFoundException>(
             () => new GetTaskCommentsQueryHandler(
                 new BoardRepository(ctx),
-                new ProjectRepository(ctx)).HandleAsync(query));
+                new ProjectRepository(ctx),
+                new FakeIdentityService()).HandleAsync(query));
     }
 
     [Fact]
@@ -115,6 +120,7 @@ public class GetTaskCommentsQueryTests
         await Assert.ThrowsAsync<ForbiddenAccessException>(
             () => new GetTaskCommentsQueryHandler(
                 new BoardRepository(ctx),
-                new ProjectRepository(ctx)).HandleAsync(query));
+                new ProjectRepository(ctx),
+                new FakeIdentityService()).HandleAsync(query));
     }
 }

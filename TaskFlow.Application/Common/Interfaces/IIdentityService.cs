@@ -18,4 +18,8 @@ public interface IIdentityService
     Task<UserDto?> GetUserByIdAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<UserDto>> GetUsersByIdsAsync(
+        IReadOnlyCollection<Guid> userIds,
+        CancellationToken cancellationToken = default);
 }

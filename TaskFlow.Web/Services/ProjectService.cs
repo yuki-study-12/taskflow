@@ -63,6 +63,31 @@ public sealed class ProjectService(IHttpClientFactory httpClientFactory, CustomA
         return ApiResult<ProjectResponse>.Failure(errors is { Count: > 0 } ? errors : DefaultErrors);
     }
 
+    public async Task<ApiResult<IReadOnlyList<MemberResponse>>> GetMembersAsync(Guid projectId)
+    {
+        HttpResponseMessage response;
+        try
+        {
+            var request = await CreateAuthorizedRequestAsync(HttpMethod.Get, $"/api/projects/{projectId}/members");
+            var client = httpClientFactory.CreateClient(HttpClientName);
+            response = await client.SendAsync(request);
+        }
+        catch (HttpRequestException)
+        {
+            return ApiResult<IReadOnlyList<MemberResponse>>.Failure(DefaultErrors);
+        }
+        catch (TaskCanceledException)
+        {
+            return ApiResult<IReadOnlyList<MemberResponse>>.Failure(DefaultErrors);
+        }
+
+        if (!response.IsSuccessStatusCode)
+            return ApiResult<IReadOnlyList<MemberResponse>>.Failure(DefaultErrors);
+
+        var members = await response.Content.ReadFromJsonAsync<IReadOnlyList<MemberResponse>>();
+        return ApiResult<IReadOnlyList<MemberResponse>>.Success(members ?? []);
+    }
+
     private async Task<HttpRequestMessage> CreateAuthorizedRequestAsync(HttpMethod method, string uri)
     {
         var request = new HttpRequestMessage(method, uri);

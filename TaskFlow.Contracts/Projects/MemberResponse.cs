@@ -2,4 +2,6 @@ namespace TaskFlow.Contracts.Projects;
 
 public sealed record MemberResponse(
     Guid UserId,
-    string Role);
+    string Role,
+    string DisplayName,
+    string? AvatarUrl);

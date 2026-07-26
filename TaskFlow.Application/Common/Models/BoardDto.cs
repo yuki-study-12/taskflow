@@ -4,6 +4,7 @@ public sealed record CommentDto(
     Guid Id,
     Guid TaskId,
     Guid AuthorId,
+    string AuthorDisplayName,
     string Body,
     DateTime CreatedAt);
 
@@ -14,6 +15,8 @@ public sealed record TaskDto(
     string Description,
     Guid? AssigneeId,
     int Order,
+    DateTime? DueDate,
+    TaskFlow.Domain.Boards.Priority Priority,
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
