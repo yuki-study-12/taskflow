@@ -40,6 +40,8 @@ public sealed class GetBoardByProjectIdQueryHandler(
                         t.Description,
                         t.AssigneeId,
                         t.Order,
+                        t.DueDate,
+                        t.Priority,
                         t.CreatedAt,
                         t.UpdatedAt))
                     .ToList()))

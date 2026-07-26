@@ -42,7 +42,7 @@ public class UpdateTaskCommandTests
     public async Task HandleAsync_正常更新_タスク情報が変更される()
     {
         var (_, task, ownerId) = await SeedAsync();
-        var command = new UpdateTaskCommand(task.Id, "更新タスク", "新しい説明", null, ownerId);
+        var command = new UpdateTaskCommand(task.Id, "更新タスク", "新しい説明", null, null, Priority.Medium, ownerId);
 
         await using var ctx = CreateContext();
         var result = await new UpdateTaskCommandHandler(
@@ -58,7 +58,7 @@ public class UpdateTaskCommandTests
     {
         var (_, task, ownerId) = await SeedAsync();
         var newAssignee = Guid.NewGuid();
-        var command = new UpdateTaskCommand(task.Id, "タスク1", "説明", newAssignee, ownerId);
+        var command = new UpdateTaskCommand(task.Id, "タスク1", "説明", newAssignee, null, Priority.Medium, ownerId);
 
         await using var ctx = CreateContext();
         var result = await new UpdateTaskCommandHandler(
@@ -69,9 +69,25 @@ public class UpdateTaskCommandTests
     }
 
     [Fact]
+    public async Task HandleAsync_期限と優先度を変更_更新される()
+    {
+        var (_, task, ownerId) = await SeedAsync();
+        var dueDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc);
+        var command = new UpdateTaskCommand(task.Id, "タスク1", "説明", null, dueDate, Priority.High, ownerId);
+
+        await using var ctx = CreateContext();
+        var result = await new UpdateTaskCommandHandler(
+            new BoardRepository(ctx),
+            new ProjectRepository(ctx)).HandleAsync(command);
+
+        Assert.Equal(dueDate, result.DueDate);
+        Assert.Equal(Priority.High, result.Priority);
+    }
+
+    [Fact]
     public async Task HandleAsync_存在しないタスク_NotFoundExceptionをスロー()
     {
-        var command = new UpdateTaskCommand(Guid.NewGuid(), "タスク", "説明", null, Guid.NewGuid());
+        var command = new UpdateTaskCommand(Guid.NewGuid(), "タスク", "説明", null, null, Priority.Medium, Guid.NewGuid());
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<NotFoundException>(
@@ -84,7 +100,7 @@ public class UpdateTaskCommandTests
     public async Task HandleAsync_非メンバーが更新_ForbiddenAccessExceptionをスロー()
     {
         var (_, task, _) = await SeedAsync();
-        var command = new UpdateTaskCommand(task.Id, "タスク", "説明", null, Guid.NewGuid());
+        var command = new UpdateTaskCommand(task.Id, "タスク", "説明", null, null, Priority.Medium, Guid.NewGuid());
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<ForbiddenAccessException>(

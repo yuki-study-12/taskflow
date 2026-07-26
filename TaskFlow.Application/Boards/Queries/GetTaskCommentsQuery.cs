@@ -8,7 +8,8 @@ public sealed record GetTaskCommentsQuery(Guid TaskId, Guid UserId);
 
 public sealed class GetTaskCommentsQueryHandler(
     IBoardRepository boardRepository,
-    IProjectRepository projectRepository)
+    IProjectRepository projectRepository,
+    IIdentityService identityService)
     : IQueryHandler<GetTaskCommentsQuery, IReadOnlyList<CommentDto>>
 {
     public async Task<IReadOnlyList<CommentDto>> HandleAsync(
@@ -29,8 +30,18 @@ public sealed class GetTaskCommentsQueryHandler(
 
         var comments = await boardRepository.GetCommentsByTaskIdAsync(query.TaskId, cancellationToken);
 
+        var authorIds = comments.Select(c => c.AuthorId).Distinct().ToList();
+        var authors = await identityService.GetUsersByIdsAsync(authorIds, cancellationToken);
+        var displayNameByAuthorId = authors.ToDictionary(a => a.Id, a => a.DisplayName);
+
         return comments
-            .Select(c => new CommentDto(c.Id, c.TaskId, c.AuthorId, c.Body, c.CreatedAt))
+            .Select(c => new CommentDto(
+                c.Id,
+                c.TaskId,
+                c.AuthorId,
+                displayNameByAuthorId.GetValueOrDefault(c.AuthorId, "不明なユーザー"),
+                c.Body,
+                c.CreatedAt))
             .ToList();
     }
 }

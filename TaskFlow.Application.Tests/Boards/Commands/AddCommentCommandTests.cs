@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Boards.Commands;
 using TaskFlow.Application.Common.Exceptions;
+using TaskFlow.Application.Tests.TestDoubles;
 using TaskFlow.Domain.Boards;
 using TaskFlow.Domain.Projects;
 using TaskFlow.Infrastructure.Persistence;
@@ -47,7 +48,8 @@ public class AddCommentCommandTests
         await using var ctx = CreateContext();
         var result = await new AddCommentCommandHandler(
             new BoardRepository(ctx),
-            new ProjectRepository(ctx)).HandleAsync(command);
+            new ProjectRepository(ctx),
+            new FakeIdentityService()).HandleAsync(command);
 
         Assert.Equal("テストコメント", result.Body);
         Assert.Equal(task.Id, result.TaskId);
@@ -63,7 +65,8 @@ public class AddCommentCommandTests
         await using var ctx = CreateContext();
         await new AddCommentCommandHandler(
             new BoardRepository(ctx),
-            new ProjectRepository(ctx)).HandleAsync(command);
+            new ProjectRepository(ctx),
+            new FakeIdentityService()).HandleAsync(command);
 
         await using var verify = CreateContext();
         var comments = await new BoardRepository(verify).GetCommentsByTaskIdAsync(task.Id);
@@ -80,7 +83,8 @@ public class AddCommentCommandTests
         await Assert.ThrowsAsync<NotFoundException>(
             () => new AddCommentCommandHandler(
                 new BoardRepository(ctx),
-                new ProjectRepository(ctx)).HandleAsync(command));
+                new ProjectRepository(ctx),
+                new FakeIdentityService()).HandleAsync(command));
     }
 
     [Fact]
@@ -93,6 +97,7 @@ public class AddCommentCommandTests
         await Assert.ThrowsAsync<ForbiddenAccessException>(
             () => new AddCommentCommandHandler(
                 new BoardRepository(ctx),
-                new ProjectRepository(ctx)).HandleAsync(command));
+                new ProjectRepository(ctx),
+                new FakeIdentityService()).HandleAsync(command));
     }
 }

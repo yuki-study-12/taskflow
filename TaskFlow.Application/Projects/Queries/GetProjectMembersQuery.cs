@@ -6,7 +6,9 @@ namespace TaskFlow.Application.Projects.Queries;
 
 public sealed record GetProjectMembersQuery(Guid ProjectId, Guid UserId);
 
-public sealed class GetProjectMembersQueryHandler(IProjectRepository projectRepository)
+public sealed class GetProjectMembersQueryHandler(
+    IProjectRepository projectRepository,
+    IIdentityService identityService)
     : IQueryHandler<GetProjectMembersQuery, IReadOnlyList<MemberDto>>
 {
     public async Task<IReadOnlyList<MemberDto>> HandleAsync(
@@ -19,8 +21,16 @@ public sealed class GetProjectMembersQueryHandler(IProjectRepository projectRepo
         if (!project.Members.Any(m => m.UserId == query.UserId))
             throw new ForbiddenAccessException();
 
+        var memberIds = project.Members.Select(m => m.UserId).ToList();
+        var users = await identityService.GetUsersByIdsAsync(memberIds, cancellationToken);
+        var usersById = users.ToDictionary(u => u.Id);
+
         return project.Members
-            .Select(m => new MemberDto(m.UserId, m.Role.Value))
+            .Select(m =>
+            {
+                usersById.TryGetValue(m.UserId, out var user);
+                return new MemberDto(m.UserId, m.Role.Value, user?.DisplayName ?? "不明なユーザー", user?.AvatarUrl);
+            })
             .ToList();
     }
 }
