@@ -13,6 +13,8 @@ public class BoardTask : Common.AggregateRoot<Guid>
     public Guid? AssigneeId { get; private set; }
     public Guid CreatorId { get; private set; }
     public int Order { get; private set; }
+    public DateTime? DueDate { get; private set; }
+    public Priority Priority { get; private set; } = Priority.Medium;
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
@@ -27,6 +29,7 @@ public class BoardTask : Common.AggregateRoot<Guid>
         AssigneeId = assigneeId;
         CreatorId = creatorId;
         Order = order;
+        Priority = Priority.Medium;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
     }
@@ -42,12 +45,14 @@ public class BoardTask : Common.AggregateRoot<Guid>
         return new BoardTask(Guid.NewGuid(), columnId, title, description ?? string.Empty, assigneeId, creatorId, order, DateTime.UtcNow);
     }
 
-    public void Update(string title, string description, Guid? assigneeId)
+    public void Update(string title, string description, Guid? assigneeId, DateTime? dueDate, Priority priority)
     {
         var previousAssigneeId = AssigneeId;
         Title = title;
         Description = description ?? string.Empty;
         AssigneeId = assigneeId;
+        DueDate = dueDate;
+        Priority = priority;
         UpdatedAt = DateTime.UtcNow;
 
         if (assigneeId.HasValue && assigneeId != previousAssigneeId)

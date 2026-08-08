@@ -27,6 +27,6 @@ public sealed class GetTaskByIdQueryHandler(
         if (!project.Members.Any(m => m.UserId == query.UserId))
             throw new ForbiddenAccessException();
 
-        return new TaskDto(task.Id, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.CreatedAt, task.UpdatedAt);
+        return new TaskDto(task.Id, projectId, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.DueDate, task.Priority, task.CreatedAt, task.UpdatedAt);
     }
 }

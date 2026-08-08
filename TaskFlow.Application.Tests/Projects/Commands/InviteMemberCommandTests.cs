@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Common.Exceptions;
 using TaskFlow.Application.Projects.Commands;
+using TaskFlow.Application.Tests.TestDoubles;
 using TaskFlow.Domain.Projects;
 using TaskFlow.Infrastructure.Persistence;
 using Xunit;
@@ -39,7 +40,7 @@ public class InviteMemberCommandTests
         var project = await SeedProjectAsync(ownerId);
 
         await using var ctx = CreateContext();
-        var result = await new InviteMemberCommandHandler(new ProjectRepository(ctx))
+        var result = await new InviteMemberCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
             .HandleAsync(new InviteMemberCommand(project.Id, ownerId, targetId, "Member"));
 
         Assert.Equal(targetId, result.UserId);
@@ -55,7 +56,7 @@ public class InviteMemberCommandTests
         var project = await SeedProjectAsync(ownerId, p => p.AddMember(adminId, MemberRole.Admin));
 
         await using var ctx = CreateContext();
-        var result = await new InviteMemberCommandHandler(new ProjectRepository(ctx))
+        var result = await new InviteMemberCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
             .HandleAsync(new InviteMemberCommand(project.Id, adminId, targetId, "Member"));
 
         Assert.Equal(targetId, result.UserId);
@@ -70,7 +71,7 @@ public class InviteMemberCommandTests
         var project = await SeedProjectAsync(ownerId);
 
         await using (var ctx = CreateContext())
-            await new InviteMemberCommandHandler(new ProjectRepository(ctx))
+            await new InviteMemberCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new InviteMemberCommand(project.Id, ownerId, targetId, "Admin"));
 
         await using var verify = CreateContext();
@@ -89,7 +90,7 @@ public class InviteMemberCommandTests
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => new InviteMemberCommandHandler(new ProjectRepository(ctx))
+            () => new InviteMemberCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new InviteMemberCommand(project.Id, memberId, targetId, "Member")));
     }
 
@@ -101,7 +102,7 @@ public class InviteMemberCommandTests
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => new InviteMemberCommandHandler(new ProjectRepository(ctx))
+            () => new InviteMemberCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new InviteMemberCommand(project.Id, Guid.NewGuid(), Guid.NewGuid(), "Member")));
     }
 
@@ -110,7 +111,7 @@ public class InviteMemberCommandTests
     {
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<NotFoundException>(
-            () => new InviteMemberCommandHandler(new ProjectRepository(ctx))
+            () => new InviteMemberCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new InviteMemberCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Member")));
     }
 
@@ -122,7 +123,7 @@ public class InviteMemberCommandTests
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => new InviteMemberCommandHandler(new ProjectRepository(ctx))
+            () => new InviteMemberCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new InviteMemberCommand(project.Id, ownerId, ownerId, "Member")));
     }
 

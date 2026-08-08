@@ -1,0 +1,88 @@
+@page "/register"
+@layout TaskFlow.Web.Components.Layout.LoginLayout
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<PageTitle>新規登録 - TaskFlow</PageTitle>
+
+<div class="card shadow" style="width: 360px;">
+    <div class="card-header text-center py-3">
+        <h4 class="mb-0 fw-bold">TaskFlow</h4>
+        <small class="text-muted">アカウント登録</small>
+    </div>
+    <div class="card-body p-4">
+        <EditForm Model="model" OnValidSubmit="HandleRegisterAsync">
+            <DataAnnotationsValidator />
+
+            @if (errors.Count > 0)
+            {
+                <div class="alert alert-danger py-2">
+                    <ul class="mb-0 ps-3">
+                        @foreach (var error in errors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="model.DisplayName" class="form-control" id="displayName" placeholder="表示名" />
+                <label for="displayName">表示名</label>
+                <ValidationMessage For="() => model.DisplayName" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="model.Email" class="form-control" id="email" placeholder="メールアドレス" />
+                <label for="email">メールアドレス</label>
+                <ValidationMessage For="() => model.Email" />
+            </div>
+            <div class="form-floating mb-4">
+                <InputText @bind-Value="model.Password" type="password" class="form-control" id="password" placeholder="パスワード" />
+                <label for="password">パスワード</label>
+                <ValidationMessage For="() => model.Password" />
+            </div>
+            <button type="submit" class="btn btn-primary w-100" disabled="@isSubmitting">登録</button>
+        </EditForm>
+        <p class="text-center mt-3 mb-0">
+            <a href="/login">既にアカウントをお持ちの方はこちら</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private readonly RegisterModel model = new();
+    private List<string> errors = [];
+    private bool isSubmitting;
+
+    private async Task HandleRegisterAsync()
+    {
+        isSubmitting = true;
+        errors = [];
+
+        var result = await AuthService.RegisterAsync(model.Email, model.Password, model.DisplayName);
+        if (result.Succeeded)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            errors = [.. result.Errors];
+            isSubmitting = false;
+        }
+    }
+
+    private sealed class RegisterModel
+    {
+        [Required(ErrorMessage = "表示名を入力してください。")]
+        [StringLength(50, MinimumLength = 1, ErrorMessage = "表示名は1〜50文字で入力してください。")]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "メールアドレスを入力してください。")]
+        [EmailAddress(ErrorMessage = "メールアドレスの形式が正しくありません。")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "パスワードを入力してください。")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "パスワードは8文字以上で入力してください。")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

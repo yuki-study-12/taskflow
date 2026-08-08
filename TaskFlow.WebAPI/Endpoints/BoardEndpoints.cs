@@ -7,6 +7,7 @@ using TaskFlow.Application.Common.Constants;
 using TaskFlow.Application.Common.Interfaces;
 using TaskFlow.Application.Common.Models;
 using TaskFlow.Contracts.Boards;
+using TaskFlow.Domain.Boards;
 
 namespace TaskFlow.WebAPI.Endpoints;
 
@@ -44,6 +45,9 @@ public static class BoardEndpoints
         var taskGroup = app.MapGroup("/api/tasks")
             .WithTags("Boards")
             .RequireAuthorization();
+
+        taskGroup.MapGet("/mine", GetMyTasksAsync)
+            .WithName("GetMyTasks");
 
         taskGroup.MapGet("/{id:guid}", GetTaskByIdAsync)
             .WithName("GetTaskById");
@@ -158,6 +162,21 @@ public static class BoardEndpoints
         return TypedResults.Created($"/api/tasks/{task.Id}", response);
     }
 
+    private static async Task<Results<Ok<IReadOnlyList<MyTaskResponse>>, UnauthorizedHttpResult>>
+        GetMyTasksAsync(
+            ClaimsPrincipal principal,
+            IQueryHandler<GetMyTasksQuery, IReadOnlyList<MyTaskDto>> handler,
+            CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(principal, out var userId))
+            return TypedResults.Unauthorized();
+
+        var tasks = await handler.HandleAsync(new GetMyTasksQuery(userId), cancellationToken);
+
+        var response = tasks.Select(ToResponse).ToList();
+        return TypedResults.Ok<IReadOnlyList<MyTaskResponse>>(response);
+    }
+
     private static async Task<Results<Ok<TaskResponse>, UnauthorizedHttpResult>>
         GetTaskByIdAsync(
             Guid id,
@@ -173,7 +192,7 @@ public static class BoardEndpoints
         return TypedResults.Ok(ToResponse(task));
     }
 
-    private static async Task<Results<Ok<TaskResponse>, UnauthorizedHttpResult>>
+    private static async Task<Results<Ok<TaskResponse>, UnauthorizedHttpResult, BadRequest<string>>>
         UpdateTaskAsync(
             Guid id,
             [FromBody] UpdateTaskRequest request,
@@ -184,8 +203,11 @@ public static class BoardEndpoints
         if (!TryGetUserId(principal, out var userId))
             return TypedResults.Unauthorized();
 
+        if (!Enum.TryParse<Priority>(request.Priority, out var priority))
+            return TypedResults.BadRequest($"Invalid priority: {request.Priority}");
+
         var task = await handler.HandleAsync(
-            new UpdateTaskCommand(id, request.Title, request.Description, request.AssigneeId, userId),
+            new UpdateTaskCommand(id, request.Title, request.Description, request.AssigneeId, request.DueDate, priority, userId),
             cancellationToken);
 
         return TypedResults.Ok(ToResponse(task));
@@ -281,10 +303,13 @@ public static class BoardEndpoints
             dto.Tasks.Select(ToResponse).ToList());
 
     private static TaskResponse ToResponse(TaskDto dto) =>
-        new(dto.Id, dto.ColumnId, dto.Title, dto.Description, dto.AssigneeId, dto.Order, dto.CreatedAt, dto.UpdatedAt);
+        new(dto.Id, dto.ProjectId, dto.ColumnId, dto.Title, dto.Description, dto.AssigneeId, dto.Order, dto.DueDate, dto.Priority.ToString(), dto.CreatedAt, dto.UpdatedAt);
+
+    private static MyTaskResponse ToResponse(MyTaskDto dto) =>
+        new(dto.Id, dto.Title, dto.Description, dto.ProjectId, dto.ProjectName, dto.ColumnId, dto.ColumnName, dto.CreatedAt, dto.UpdatedAt);
 
     private static CommentResponse ToResponse(CommentDto dto) =>
-        new(dto.Id, dto.TaskId, dto.AuthorId, dto.Body, dto.CreatedAt);
+        new(dto.Id, dto.TaskId, dto.AuthorId, dto.AuthorDisplayName, dto.Body, dto.CreatedAt);
 
     private static bool TryGetUserId(ClaimsPrincipal principal, out Guid userId)
     {

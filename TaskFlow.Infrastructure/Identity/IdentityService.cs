@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Common.Interfaces;
 using TaskFlow.Application.Common.Models;
 
@@ -61,6 +62,18 @@ internal sealed class IdentityService(
         cancellationToken.ThrowIfCancellationRequested();
         var user = await userManager.FindByIdAsync(userId.ToString());
         return user is null ? null : MapToDto(user);
+    }
+
+    public async Task<IReadOnlyList<UserDto>> GetUsersByIdsAsync(
+        IReadOnlyCollection<Guid> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var users = await userManager.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync(cancellationToken);
+
+        return users.Select(MapToDto).ToList();
     }
 
     private static UserDto MapToDto(ApplicationUser user) =>

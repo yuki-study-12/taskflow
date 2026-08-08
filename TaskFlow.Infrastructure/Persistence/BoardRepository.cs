@@ -60,6 +60,12 @@ public class BoardRepository(AppDbContext context) : IBoardRepository
             .OrderBy(t => t.Order)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<BoardTask>> GetTasksByAssigneeIdAsync(Guid assigneeId, CancellationToken cancellationToken = default)
+        => await context.Tasks
+            .Where(t => t.AssigneeId == assigneeId)
+            .OrderByDescending(t => t.UpdatedAt)
+            .ToListAsync(cancellationToken);
+
     public async Task AddTaskAsync(BoardTask task, CancellationToken cancellationToken = default)
     {
         await context.Tasks.AddAsync(task, cancellationToken);
@@ -85,6 +91,17 @@ public class BoardRepository(AppDbContext context) : IBoardRepository
             .Join(context.Columns, t => t.ColumnId, c => c.Id, (t, c) => c)
             .Join(context.Boards, c => c.BoardId, b => b.Id, (c, b) => (Guid?)b.ProjectId)
             .FirstOrDefaultAsync(cancellationToken);
+
+    // Batch lookups (read-side helpers)
+    public async Task<IReadOnlyList<Column>> GetColumnsByIdsAsync(IReadOnlyCollection<Guid> columnIds, CancellationToken cancellationToken = default)
+        => await context.Columns
+            .Where(c => columnIds.Contains(c.Id))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Board>> GetBoardsByIdsAsync(IReadOnlyCollection<Guid> boardIds, CancellationToken cancellationToken = default)
+        => await context.Boards
+            .Where(b => boardIds.Contains(b.Id))
+            .ToListAsync(cancellationToken);
 
     // Comment
     public Task<TaskComment?> GetCommentByIdAsync(Guid commentId, CancellationToken cancellationToken = default)

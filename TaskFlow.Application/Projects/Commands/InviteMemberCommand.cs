@@ -12,7 +12,9 @@ public sealed record InviteMemberCommand(
     Guid TargetUserId,
     string Role);
 
-public sealed class InviteMemberCommandHandler(IProjectRepository projectRepository)
+public sealed class InviteMemberCommandHandler(
+    IProjectRepository projectRepository,
+    IIdentityService identityService)
     : ICommandHandler<InviteMemberCommand, MemberDto>
 {
     public async Task<MemberDto> HandleAsync(
@@ -33,7 +35,8 @@ public sealed class InviteMemberCommandHandler(IProjectRepository projectReposit
 
         await projectRepository.UpdateAsync(project, cancellationToken);
 
-        return new MemberDto(command.TargetUserId, role.Value);
+        var user = await identityService.GetUserByIdAsync(command.TargetUserId, cancellationToken);
+        return new MemberDto(command.TargetUserId, role.Value, user?.DisplayName ?? "不明なユーザー", user?.AvatarUrl);
     }
 }
 

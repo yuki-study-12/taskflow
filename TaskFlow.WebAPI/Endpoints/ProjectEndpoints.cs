@@ -145,7 +145,7 @@ public static class ProjectEndpoints
         var members = await handler.HandleAsync(new GetProjectMembersQuery(id, userId), cancellationToken);
 
         var response = members
-            .Select(m => new MemberResponse(m.UserId, m.Role))
+            .Select(m => new MemberResponse(m.UserId, m.Role, m.DisplayName, m.AvatarUrl))
             .ToList();
 
         return TypedResults.Ok<IReadOnlyList<MemberResponse>>(response);
@@ -166,7 +166,7 @@ public static class ProjectEndpoints
             new InviteMemberCommand(id, userId, request.UserId, request.Role),
             cancellationToken);
 
-        var response = new MemberResponse(member.UserId, member.Role);
+        var response = new MemberResponse(member.UserId, member.Role, member.DisplayName, member.AvatarUrl);
         return TypedResults.Created($"/api/projects/{id}/members/{member.UserId}", response);
     }
 
@@ -186,7 +186,7 @@ public static class ProjectEndpoints
             new UpdateMemberRoleCommand(id, userId, uid, request.Role),
             cancellationToken);
 
-        return TypedResults.Ok(new MemberResponse(member.UserId, member.Role));
+        return TypedResults.Ok(new MemberResponse(member.UserId, member.Role, member.DisplayName, member.AvatarUrl));
     }
 
     private static async Task<Results<NoContent, UnauthorizedHttpResult>>

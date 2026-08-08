@@ -29,7 +29,7 @@ public static class DependencyInjection
         var handlerInterface = typeof(ICommandHandler<,>);
 
         foreach (var (impl, iface) in assembly.GetTypes()
-            .Where(t => t is { IsClass: true, IsAbstract: false })
+            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false })
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType &&
                             i.GetGenericTypeDefinition() == handlerInterface)
@@ -56,7 +56,7 @@ public static class DependencyInjection
         Type handlerType)
     {
         foreach (var (impl, iface) in assembly.GetTypes()
-            .Where(t => t is { IsClass: true, IsAbstract: false })
+            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false })
             .SelectMany(t => t.GetInterfaces()
                 .Where(i => i.IsGenericType &&
                             i.GetGenericTypeDefinition() == handlerType)

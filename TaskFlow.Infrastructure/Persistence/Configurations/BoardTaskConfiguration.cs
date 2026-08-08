@@ -22,6 +22,10 @@ public sealed class BoardTaskConfiguration : IEntityTypeConfiguration<BoardTask>
         builder.Property(t => t.ColumnId).IsRequired();
         builder.Property(t => t.CreatorId).IsRequired();
         builder.Property(t => t.Order).IsRequired();
+        builder.Property(t => t.DueDate);
+        builder.Property(t => t.Priority)
+            .HasConversion<int>()
+            .IsRequired();
         builder.Property(t => t.CreatedAt).IsRequired();
         builder.Property(t => t.UpdatedAt).IsRequired();
 

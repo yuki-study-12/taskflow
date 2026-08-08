@@ -3,4 +3,6 @@ namespace TaskFlow.Contracts.Boards;
 public sealed record UpdateTaskRequest(
     string Title,
     string Description,
-    Guid? AssigneeId);
+    Guid? AssigneeId,
+    DateTime? DueDate,
+    string Priority);
