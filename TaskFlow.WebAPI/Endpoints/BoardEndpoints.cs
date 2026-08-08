@@ -303,7 +303,7 @@ public static class BoardEndpoints
             dto.Tasks.Select(ToResponse).ToList());
 
     private static TaskResponse ToResponse(TaskDto dto) =>
-        new(dto.Id, dto.ColumnId, dto.Title, dto.Description, dto.AssigneeId, dto.Order, dto.DueDate, dto.Priority.ToString(), dto.CreatedAt, dto.UpdatedAt);
+        new(dto.Id, dto.ProjectId, dto.ColumnId, dto.Title, dto.Description, dto.AssigneeId, dto.Order, dto.DueDate, dto.Priority.ToString(), dto.CreatedAt, dto.UpdatedAt);
 
     private static MyTaskResponse ToResponse(MyTaskDto dto) =>
         new(dto.Id, dto.Title, dto.Description, dto.ProjectId, dto.ProjectName, dto.ColumnId, dto.ColumnName, dto.CreatedAt, dto.UpdatedAt);

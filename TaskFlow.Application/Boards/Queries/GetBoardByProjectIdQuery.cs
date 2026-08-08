@@ -35,6 +35,7 @@ public sealed class GetBoardByProjectIdQueryHandler(
                     .OrderBy(t => t.Order)
                     .Select(t => new TaskDto(
                         t.Id,
+                        query.ProjectId,
                         t.ColumnId,
                         t.Title,
                         t.Description,

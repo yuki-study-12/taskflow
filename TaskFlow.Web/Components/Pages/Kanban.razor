@@ -51,6 +51,10 @@ else
     [Parameter]
     public Guid ProjectId { get; set; }
 
+    [SupplyParameterFromQuery(Name = "taskId")]
+    public Guid? TaskId { get; set; }
+
+    private Guid? lastHandledTaskId;
     private List<KanbanColumnState> columns = [];
     private IReadOnlyList<MemberResponse> members = [];
     private Guid? boardId;
@@ -69,6 +73,18 @@ else
     {
         await LoadBoardAsync();
         await LoadMembersAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // 通知パネルからの遷移(?taskId=...)で、該当タスクの詳細モーダルを自動的に開く
+        if (TaskId is null || TaskId == lastHandledTaskId || isLoading)
+            return;
+
+        lastHandledTaskId = TaskId;
+        var task = columns.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Id == TaskId);
+        if (task is not null)
+            OpenModal(task);
     }
 
     private async Task LoadBoardAsync()

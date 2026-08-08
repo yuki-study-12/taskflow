@@ -16,6 +16,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<BoardService>();
+builder.Services.AddScoped<NotificationService>();
 
 builder.Services.AddHttpClient("TaskFlowApi", client =>
 {
