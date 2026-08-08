@@ -39,7 +39,7 @@ public sealed class UpdateTaskCommandHandler(
         task.Update(command.Title, command.Description, command.AssigneeId, command.DueDate, command.Priority);
         await boardRepository.UpdateTaskAsync(task, cancellationToken);
 
-        return new TaskDto(task.Id, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.DueDate, task.Priority, task.CreatedAt, task.UpdatedAt);
+        return new TaskDto(task.Id, projectId, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.DueDate, task.Priority, task.CreatedAt, task.UpdatedAt);
     }
 }
 

@@ -35,7 +35,7 @@ public sealed class UpdateColumnCommandHandler(
         await boardRepository.UpdateColumnAsync(column, cancellationToken);
 
         var tasks = column.Tasks
-            .Select(t => new TaskDto(t.Id, t.ColumnId, t.Title, t.Description, t.AssigneeId, t.Order, t.DueDate, t.Priority, t.CreatedAt, t.UpdatedAt))
+            .Select(t => new TaskDto(t.Id, projectId, t.ColumnId, t.Title, t.Description, t.AssigneeId, t.Order, t.DueDate, t.Priority, t.CreatedAt, t.UpdatedAt))
             .ToList();
 
         return new ColumnDto(column.Id, column.BoardId, column.Name, column.Order, tasks);

@@ -74,7 +74,7 @@ public sealed class MoveTaskCommandHandler(
 
         await boardRepository.UpdateTaskAsync(task, cancellationToken);
 
-        var taskDto = new TaskDto(task.Id, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.DueDate, task.Priority, task.CreatedAt, task.UpdatedAt);
+        var taskDto = new TaskDto(task.Id, projectId, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.DueDate, task.Priority, task.CreatedAt, task.UpdatedAt);
         await notificationService.NotifyTaskMovedAsync(board.Id, taskDto, cancellationToken);
         return taskDto;
     }

@@ -10,6 +10,7 @@ public sealed record CommentDto(
 
 public sealed record TaskDto(
     Guid Id,
+    Guid ProjectId,
     Guid ColumnId,
     string Title,
     string Description,

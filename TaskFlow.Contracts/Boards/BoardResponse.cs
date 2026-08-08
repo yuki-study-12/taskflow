@@ -10,6 +10,7 @@ public sealed record CommentResponse(
 
 public sealed record TaskResponse(
     Guid Id,
+    Guid ProjectId,
     Guid ColumnId,
     string Title,
     string Description,

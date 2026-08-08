@@ -38,7 +38,7 @@ public sealed class CreateTaskCommandHandler(
         var task = BoardTask.Create(command.ColumnId, command.Title, command.Description, command.AssigneeId, order, command.UserId);
         await boardRepository.AddTaskAsync(task, cancellationToken);
 
-        return new TaskDto(task.Id, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.DueDate, task.Priority, task.CreatedAt, task.UpdatedAt);
+        return new TaskDto(task.Id, projectId, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.DueDate, task.Priority, task.CreatedAt, task.UpdatedAt);
     }
 }
 

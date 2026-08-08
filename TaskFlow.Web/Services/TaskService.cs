@@ -12,6 +12,9 @@ public sealed class TaskService(IHttpClientFactory httpClientFactory, CustomAuth
     public Task<ApiResult<IReadOnlyList<MyTaskResponse>>> GetMyTasksAsync() =>
         SendAsync<IReadOnlyList<MyTaskResponse>>(HttpMethod.Get, "/api/tasks/mine");
 
+    public Task<ApiResult<TaskResponse>> GetTaskByIdAsync(Guid taskId) =>
+        SendAsync<TaskResponse>(HttpMethod.Get, $"/api/tasks/{taskId}");
+
     public Task<ApiResult<TaskResponse>> UpdateTaskAsync(
         Guid taskId, string title, string description, Guid? assigneeId, DateTime? dueDate, string priority) =>
         SendAsync<TaskResponse>(
