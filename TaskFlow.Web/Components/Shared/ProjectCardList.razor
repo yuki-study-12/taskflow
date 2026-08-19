@@ -1,0 +1,40 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="fw-semibold">プロジェクト</div>
+    <button type="button" class="btn btn-primary btn-sm" @onclick="() => OnCreateClicked.InvokeAsync()">
+        + 新規プロジェクト
+    </button>
+</div>
+
+@if (Projects.Count == 0)
+{
+    <p class="text-muted">参加しているプロジェクトはまだありません。</p>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var project in Projects)
+        {
+            <div class="col-md-4">
+                <a href="@($"/projects/{project.Id}/board")" class="text-decoration-none text-reset">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">@project.Name</h5>
+                                <span class="badge bg-secondary">@project.UserRole</span>
+                            </div>
+                            <p class="card-text text-muted">@project.Description</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ProjectResponse> Projects { get; set; } = [];
+
+    [Parameter]
+    public EventCallback OnCreateClicked { get; set; }
+}

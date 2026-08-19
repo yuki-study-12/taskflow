@@ -35,11 +35,14 @@ public sealed class GetBoardByProjectIdQueryHandler(
                     .OrderBy(t => t.Order)
                     .Select(t => new TaskDto(
                         t.Id,
+                        query.ProjectId,
                         t.ColumnId,
                         t.Title,
                         t.Description,
                         t.AssigneeId,
                         t.Order,
+                        t.DueDate,
+                        t.Priority,
                         t.CreatedAt,
                         t.UpdatedAt))
                     .ToList()))

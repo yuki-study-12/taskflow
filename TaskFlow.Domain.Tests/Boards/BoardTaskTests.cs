@@ -28,7 +28,7 @@ public class BoardTaskTests
         var task = BoardTask.Create(Guid.NewGuid(), "タイトル", "", null, 0, Guid.NewGuid());
         var assigneeId = Guid.NewGuid();
 
-        task.Update("タイトル", "", assigneeId);
+        task.Update("タイトル", "", assigneeId, null, Priority.Medium);
 
         var evt = Assert.Single(task.DomainEvents);
         var assigned = Assert.IsType<TaskAssignedEvent>(evt);
@@ -43,7 +43,7 @@ public class BoardTaskTests
         var task = BoardTask.Create(Guid.NewGuid(), "タイトル", "", assigneeId, 0, Guid.NewGuid());
         task.ClearDomainEvents();
 
-        task.Update("新しいタイトル", "", assigneeId);
+        task.Update("新しいタイトル", "", assigneeId, null, Priority.Medium);
 
         Assert.Empty(task.DomainEvents);
     }
@@ -55,7 +55,7 @@ public class BoardTaskTests
         var task = BoardTask.Create(Guid.NewGuid(), "タイトル", "", assigneeId, 0, Guid.NewGuid());
         task.ClearDomainEvents();
 
-        task.Update("タイトル", "", null);
+        task.Update("タイトル", "", null, null, Priority.Medium);
 
         Assert.Empty(task.DomainEvents);
     }

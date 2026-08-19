@@ -1,5 +1,7 @@
 @page "/login"
 @layout TaskFlow.Web.Components.Layout.LoginLayout
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
 
 <PageTitle>ログイン - TaskFlow</PageTitle>
 
@@ -9,16 +11,72 @@
         <small class="text-muted">チーム向けプロジェクト管理</small>
     </div>
     <div class="card-body p-4">
-        <form>
+        <EditForm Model="model" OnValidSubmit="HandleLoginAsync">
+            <DataAnnotationsValidator />
+
+            @if (errors.Count > 0)
+            {
+                <div class="alert alert-danger py-2">
+                    <ul class="mb-0 ps-3">
+                        @foreach (var error in errors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
             <div class="form-floating mb-3">
-                <input type="text" class="form-control" id="username" placeholder="ユーザー名" />
-                <label for="username">ユーザー名</label>
+                <InputText @bind-Value="model.Email" class="form-control" id="email" placeholder="メールアドレス" />
+                <label for="email">メールアドレス</label>
+                <ValidationMessage For="() => model.Email" />
             </div>
             <div class="form-floating mb-4">
-                <input type="password" class="form-control" id="password" placeholder="パスワード" />
+                <InputText @bind-Value="model.Password" type="password" class="form-control" id="password" placeholder="パスワード" />
                 <label for="password">パスワード</label>
+                <ValidationMessage For="() => model.Password" />
             </div>
-            <button type="submit" class="btn btn-primary w-100">ログイン</button>
-        </form>
+            <button type="submit" class="btn btn-primary w-100" disabled="@isSubmitting">ログイン</button>
+        </EditForm>
+        <p class="text-center mt-3 mb-0">
+            <a href="/register">アカウントを作成</a>
+        </p>
     </div>
 </div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private readonly LoginModel model = new();
+    private List<string> errors = [];
+    private bool isSubmitting;
+
+    private async Task HandleLoginAsync()
+    {
+        isSubmitting = true;
+        errors = [];
+
+        var result = await AuthService.LoginAsync(model.Email, model.Password);
+        if (result.Succeeded)
+        {
+            var target = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
+            NavigationManager.NavigateTo(target);
+        }
+        else
+        {
+            errors = [.. result.Errors];
+            isSubmitting = false;
+        }
+    }
+
+    private sealed class LoginModel
+    {
+        [Required(ErrorMessage = "メールアドレスを入力してください。")]
+        [EmailAddress(ErrorMessage = "メールアドレスの形式が正しくありません。")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "パスワードを入力してください。")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

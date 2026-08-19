@@ -1,0 +1,21 @@
+<div class="kanban-column flex-shrink-0">
+    <div class="card h-100">
+        <div class="card-header fw-semibold">
+            @Column.Name (@Column.Tasks.Count)
+        </div>
+        <div class="card-body d-flex flex-column gap-2 kanban-column-list" data-column-id="@Column.Id">
+            @foreach (var task in Column.Tasks)
+            {
+                <KanbanCard @key="task.Id" Task="task" OnClick="OnCardClicked" />
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public KanbanColumnState Column { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<KanbanTaskState> OnCardClicked { get; set; }
+}

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Boards.Commands;
 using TaskFlow.Application.Common.Exceptions;
 using TaskFlow.Application.Common.Models;
+using TaskFlow.Application.Tests.TestDoubles;
 using TaskFlow.Domain.Boards;
 using TaskFlow.Domain.Projects;
 using TaskFlow.Infrastructure.Persistence;
@@ -47,7 +48,7 @@ public class AddCommentCommandTests
         var command = new AddCommentCommand(task.Id, "コメント本文", ownerId);
 
         await using var ctx = CreateContext();
-        var handler = new AddCommentCommandHandler(new BoardRepository(ctx), new ProjectRepository(ctx));
+        var handler = new AddCommentCommandHandler(new BoardRepository(ctx), new ProjectRepository(ctx), new FakeIdentityService());
         var result = await handler.HandleAsync(command);
 
         Assert.IsType<CommentDto>(result);
@@ -59,7 +60,7 @@ public class AddCommentCommandTests
     public async Task HandleAsync_存在しないタスク_NotFoundExceptionをスロー()
     {
         await using var ctx = CreateContext();
-        var handler = new AddCommentCommandHandler(new BoardRepository(ctx), new ProjectRepository(ctx));
+        var handler = new AddCommentCommandHandler(new BoardRepository(ctx), new ProjectRepository(ctx), new FakeIdentityService());
         var command = new AddCommentCommand(Guid.NewGuid(), "本文", Guid.NewGuid());
 
         await Assert.ThrowsAsync<NotFoundException>(() => handler.HandleAsync(command));
@@ -72,7 +73,7 @@ public class AddCommentCommandTests
         var command = new AddCommentCommand(task.Id, "本文", Guid.NewGuid());
 
         await using var ctx = CreateContext();
-        var handler = new AddCommentCommandHandler(new BoardRepository(ctx), new ProjectRepository(ctx));
+        var handler = new AddCommentCommandHandler(new BoardRepository(ctx), new ProjectRepository(ctx), new FakeIdentityService());
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(() => handler.HandleAsync(command));
     }

@@ -12,7 +12,9 @@ public sealed record UpdateMemberRoleCommand(
     Guid TargetUserId,
     string Role);
 
-public sealed class UpdateMemberRoleCommandHandler(IProjectRepository projectRepository)
+public sealed class UpdateMemberRoleCommandHandler(
+    IProjectRepository projectRepository,
+    IIdentityService identityService)
     : ICommandHandler<UpdateMemberRoleCommand, MemberDto>
 {
     public async Task<MemberDto> HandleAsync(
@@ -33,7 +35,8 @@ public sealed class UpdateMemberRoleCommandHandler(IProjectRepository projectRep
 
         await projectRepository.UpdateAsync(project, cancellationToken);
 
-        return new MemberDto(command.TargetUserId, newRole.Value);
+        var user = await identityService.GetUserByIdAsync(command.TargetUserId, cancellationToken);
+        return new MemberDto(command.TargetUserId, newRole.Value, user?.DisplayName ?? "不明なユーザー", user?.AvatarUrl);
     }
 }
 

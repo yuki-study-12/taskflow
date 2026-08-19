@@ -1,0 +1,271 @@
+@implements IAsyncDisposable
+@inject TaskService TaskService
+
+<div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">タスク詳細</h5>
+                <div class="d-flex align-items-center gap-2">
+                    @if (!string.IsNullOrEmpty(saveStatus))
+                    {
+                        <small class="text-muted">@saveStatus</small>
+                    }
+                    <button type="button" class="btn-close" @onclick="HandleCloseAsync" aria-label="閉じる"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">タイトル</label>
+                    <input type="text" class="form-control" value="@model.Title" @oninput="OnTitleChanged" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">説明</label>
+                    <textarea class="form-control" rows="3" @oninput="OnDescriptionChanged">@model.Description</textarea>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">期限</label>
+                        <input type="date" class="form-control" value="@(model.DueDate?.ToString("yyyy-MM-dd"))" @onchange="OnDueDateChanged" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">優先度</label>
+                        <select class="form-select" value="@model.Priority" @onchange="OnPriorityChanged">
+                            <option value="Low">低</option>
+                            <option value="Medium">中</option>
+                            <option value="High">高</option>
+                            <option value="Critical">緊急</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">担当者</label>
+                        <select class="form-select" value="@(model.AssigneeId?.ToString() ?? "")" @onchange="OnAssigneeChanged">
+                            <option value="">未割り当て</option>
+                            @foreach (var member in Members)
+                            {
+                                <option value="@member.UserId">@member.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <hr />
+
+                <h6>コメント</h6>
+                @if (isLoadingComments)
+                {
+                    <p class="text-muted small">読み込み中...</p>
+                }
+                else if (comments.Count == 0)
+                {
+                    <p class="text-muted small">コメントはまだありません。</p>
+                }
+                else
+                {
+                    <ul class="list-group mb-3">
+                        @foreach (var comment in comments)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong class="small">@comment.AuthorDisplayName</strong>
+                                    <span class="text-muted small">@comment.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                                </div>
+                                <div>@comment.Body</div>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                @if (commentError is not null)
+                {
+                    <div class="alert alert-danger py-2">@commentError</div>
+                }
+
+                <div class="input-group">
+                    <textarea class="form-control" rows="2" placeholder="コメントを入力..." @bind="newCommentBody"></textarea>
+                    <button type="button" class="btn btn-primary" @onclick="PostCommentAsync" disabled="@(isSavingComment || string.IsNullOrWhiteSpace(newCommentBody))">
+                        投稿
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="HandleCloseAsync">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public KanbanTaskState TaskItem { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<MemberResponse> Members { get; set; } = [];
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnTaskUpdated { get; set; }
+
+    private readonly TaskEditModel model = new();
+    private List<CommentResponse> comments = [];
+    private bool isLoadingComments = true;
+    private string newCommentBody = "";
+    private bool isSavingComment;
+    private string? commentError;
+    private string? saveStatus;
+    private bool hasUnsavedChanges;
+    private CancellationTokenSource? debounceCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        model.Title = TaskItem.Title;
+        model.Description = TaskItem.Description;
+        model.AssigneeId = TaskItem.AssigneeId;
+        model.DueDate = TaskItem.DueDate;
+        model.Priority = TaskItem.Priority;
+
+        await LoadCommentsAsync();
+    }
+
+    private async Task LoadCommentsAsync()
+    {
+        isLoadingComments = true;
+        var result = await TaskService.GetCommentsAsync(TaskItem.Id);
+        comments = result.Succeeded ? [.. result.Data!] : [];
+        isLoadingComments = false;
+    }
+
+    private void OnTitleChanged(ChangeEventArgs e)
+    {
+        model.Title = e.Value?.ToString() ?? "";
+        ScheduleSave();
+    }
+
+    private void OnDescriptionChanged(ChangeEventArgs e)
+    {
+        model.Description = e.Value?.ToString() ?? "";
+        ScheduleSave();
+    }
+
+    private void OnDueDateChanged(ChangeEventArgs e)
+    {
+        model.DueDate = DateTime.TryParse(e.Value?.ToString(), out var parsed) ? parsed : null;
+        ScheduleSave();
+    }
+
+    private void OnPriorityChanged(ChangeEventArgs e)
+    {
+        model.Priority = e.Value?.ToString() ?? "Medium";
+        ScheduleSave();
+    }
+
+    private void OnAssigneeChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        model.AssigneeId = string.IsNullOrEmpty(value) ? null : Guid.Parse(value);
+        ScheduleSave();
+    }
+
+    private void ScheduleSave()
+    {
+        hasUnsavedChanges = true;
+        saveStatus = "編集中...";
+
+        debounceCts?.Cancel();
+        debounceCts?.Dispose();
+        debounceCts = new CancellationTokenSource();
+        _ = DebouncedSaveAsync(debounceCts.Token);
+    }
+
+    private async Task DebouncedSaveAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(800, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        await SaveAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        saveStatus = "保存中...";
+        await InvokeAsync(StateHasChanged);
+
+        var result = await TaskService.UpdateTaskAsync(
+            TaskItem.Id, model.Title, model.Description, model.AssigneeId, model.DueDate, model.Priority);
+
+        if (result.Succeeded)
+        {
+            TaskItem.Title = model.Title;
+            TaskItem.Description = model.Description;
+            TaskItem.AssigneeId = model.AssigneeId;
+            TaskItem.DueDate = model.DueDate;
+            TaskItem.Priority = model.Priority;
+            hasUnsavedChanges = false;
+            saveStatus = "保存済み";
+            await OnTaskUpdated.InvokeAsync();
+        }
+        else
+        {
+            saveStatus = "保存に失敗しました";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PostCommentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newCommentBody))
+            return;
+
+        isSavingComment = true;
+        commentError = null;
+
+        var result = await TaskService.AddCommentAsync(TaskItem.Id, newCommentBody);
+        if (result.Succeeded)
+        {
+            comments = [.. comments, result.Data!];
+            newCommentBody = "";
+        }
+        else
+        {
+            commentError = "コメントの投稿に失敗しました。";
+        }
+
+        isSavingComment = false;
+    }
+
+    private async Task HandleCloseAsync()
+    {
+        debounceCts?.Cancel();
+        if (hasUnsavedChanges)
+            await SaveAsync();
+
+        await OnClose.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        debounceCts?.Cancel();
+        debounceCts?.Dispose();
+
+        if (hasUnsavedChanges)
+            await SaveAsync();
+    }
+
+    private sealed class TaskEditModel
+    {
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public Guid? AssigneeId { get; set; }
+        public DateTime? DueDate { get; set; }
+        public string Priority { get; set; } = "Medium";
+    }
+}

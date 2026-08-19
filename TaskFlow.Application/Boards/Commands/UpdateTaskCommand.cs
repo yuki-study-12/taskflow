@@ -2,6 +2,7 @@ using FluentValidation;
 using TaskFlow.Application.Common.Exceptions;
 using TaskFlow.Application.Common.Interfaces;
 using TaskFlow.Application.Common.Models;
+using TaskFlow.Domain.Boards;
 
 namespace TaskFlow.Application.Boards.Commands;
 
@@ -10,6 +11,8 @@ public sealed record UpdateTaskCommand(
     string Title,
     string Description,
     Guid? AssigneeId,
+    DateTime? DueDate,
+    Priority Priority,
     Guid UserId);
 
 public sealed class UpdateTaskCommandHandler(
@@ -33,10 +36,10 @@ public sealed class UpdateTaskCommandHandler(
         if (!project.Members.Any(m => m.UserId == command.UserId))
             throw new ForbiddenAccessException();
 
-        task.Update(command.Title, command.Description, command.AssigneeId);
+        task.Update(command.Title, command.Description, command.AssigneeId, command.DueDate, command.Priority);
         await boardRepository.UpdateTaskAsync(task, cancellationToken);
 
-        return new TaskDto(task.Id, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.CreatedAt, task.UpdatedAt);
+        return new TaskDto(task.Id, projectId, task.ColumnId, task.Title, task.Description, task.AssigneeId, task.Order, task.DueDate, task.Priority, task.CreatedAt, task.UpdatedAt);
     }
 }
 
@@ -46,5 +49,6 @@ public sealed class UpdateTaskCommandValidator : AbstractValidator<UpdateTaskCom
     {
         RuleFor(x => x.Title).NotEmpty().MaximumLength(500);
         RuleFor(x => x.Description).MaximumLength(2000);
+        RuleFor(x => x.Priority).IsInEnum();
     }
 }

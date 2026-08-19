@@ -10,7 +10,8 @@ public sealed record AddCommentCommand(Guid TaskId, string Body, Guid UserId);
 
 public sealed class AddCommentCommandHandler(
     IBoardRepository boardRepository,
-    IProjectRepository projectRepository)
+    IProjectRepository projectRepository,
+    IIdentityService identityService)
     : ICommandHandler<AddCommentCommand, CommentDto>
 {
     public async Task<CommentDto> HandleAsync(
@@ -32,7 +33,8 @@ public sealed class AddCommentCommandHandler(
         var comment = task.AddComment(command.UserId, command.Body);
         await boardRepository.AddCommentAsync(comment, cancellationToken);
 
-        return new CommentDto(comment.Id, comment.TaskId, comment.AuthorId, comment.Body, comment.CreatedAt);
+        var author = await identityService.GetUserByIdAsync(comment.AuthorId, cancellationToken);
+        return new CommentDto(comment.Id, comment.TaskId, comment.AuthorId, author?.DisplayName ?? "不明なユーザー", comment.Body, comment.CreatedAt);
     }
 }
 

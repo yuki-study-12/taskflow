@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.Common.Exceptions;
 using TaskFlow.Application.Projects.Commands;
+using TaskFlow.Application.Tests.TestDoubles;
 using TaskFlow.Domain.Projects;
 using TaskFlow.Infrastructure.Persistence;
 using Xunit;
@@ -39,7 +40,7 @@ public class UpdateMemberRoleCommandTests
         var project = await SeedProjectAsync(ownerId, p => p.AddMember(memberId, MemberRole.Member));
 
         await using var ctx = CreateContext();
-        var result = await new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx))
+        var result = await new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
             .HandleAsync(new UpdateMemberRoleCommand(project.Id, ownerId, memberId, "Admin"));
 
         Assert.Equal(memberId, result.UserId);
@@ -59,7 +60,7 @@ public class UpdateMemberRoleCommandTests
         });
 
         await using var ctx = CreateContext();
-        var result = await new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx))
+        var result = await new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
             .HandleAsync(new UpdateMemberRoleCommand(project.Id, adminId, memberId, "Admin"));
 
         Assert.Equal(memberId, result.UserId);
@@ -74,7 +75,7 @@ public class UpdateMemberRoleCommandTests
         var project = await SeedProjectAsync(ownerId, p => p.AddMember(memberId, MemberRole.Member));
 
         await using (var ctx = CreateContext())
-            await new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx))
+            await new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new UpdateMemberRoleCommand(project.Id, ownerId, memberId, "Admin"));
 
         await using var verify = CreateContext();
@@ -97,7 +98,7 @@ public class UpdateMemberRoleCommandTests
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx))
+            () => new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new UpdateMemberRoleCommand(project.Id, memberId, targetId, "Admin")));
     }
 
@@ -110,7 +111,7 @@ public class UpdateMemberRoleCommandTests
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx))
+            () => new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new UpdateMemberRoleCommand(project.Id, Guid.NewGuid(), memberId, "Admin")));
     }
 
@@ -123,7 +124,7 @@ public class UpdateMemberRoleCommandTests
 
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx))
+            () => new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new UpdateMemberRoleCommand(project.Id, adminId, ownerId, "Member")));
     }
 
@@ -132,7 +133,7 @@ public class UpdateMemberRoleCommandTests
     {
         await using var ctx = CreateContext();
         await Assert.ThrowsAsync<NotFoundException>(
-            () => new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx))
+            () => new UpdateMemberRoleCommandHandler(new ProjectRepository(ctx), new FakeIdentityService())
                 .HandleAsync(new UpdateMemberRoleCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Member")));
     }
 

@@ -1,4 +1,10 @@
-@rendermode InteractiveServer
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+@inject NotificationService NotificationService
+@inject TaskService TaskService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IConfiguration Configuration
+@inject NavigationManager NavigationManager
 
 <div class="position-relative d-inline-block">
     <button class="btn btn-link p-0 position-relative text-decoration-none"
@@ -21,16 +27,37 @@
              style="width: 320px; z-index: 1050;">
             <div class="card-header d-flex justify-content-between align-items-center py-2">
                 <span class="fw-semibold">通知</span>
-                <button class="btn-close btn-sm" @onclick="TogglePanel" aria-label="閉じる"></button>
+                <div class="d-flex align-items-center gap-2">
+                    @if (unreadCount > 0)
+                    {
+                        <button class="btn btn-sm btn-link p-0" style="font-size: 0.75rem;" @onclick="MarkAllAsReadAsync">
+                            全件既読
+                        </button>
+                    }
+                    <button class="btn-close btn-sm" @onclick="TogglePanel" aria-label="閉じる"></button>
+                </div>
             </div>
             <ul class="list-group list-group-flush" style="max-height: 320px; overflow-y: auto;">
-                @foreach (var n in notifications)
+                @if (isLoading)
                 {
-                    <li class="list-group-item @(n.IsRead ? "" : "list-group-item-primary")">
-                        <div class="fw-semibold small">@n.Title</div>
-                        <div class="text-muted" style="font-size: 0.8rem;">@n.Body</div>
-                        <div class="text-muted" style="font-size: 0.7rem;">@n.Time</div>
-                    </li>
+                    <li class="list-group-item text-muted small">読み込み中...</li>
+                }
+                else if (notifications.Count == 0)
+                {
+                    <li class="list-group-item text-muted small">通知はありません。</li>
+                }
+                else
+                {
+                    @foreach (var n in notifications)
+                    {
+                        <li class="list-group-item @(n.IsRead ? "" : "list-group-item-primary")"
+                            style="cursor: pointer;"
+                            @onclick="() => HandleNotificationClickAsync(n)">
+                            <div class="fw-semibold small">@GetTypeLabel(n.Type)</div>
+                            <div class="text-muted" style="font-size: 0.8rem;">@n.Message</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">@n.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+                        </li>
+                    }
                 }
             </ul>
         </div>
@@ -38,17 +65,112 @@
 </div>
 
 @code {
-    private record Notification(string Title, string Body, string Time, bool IsRead);
+    private bool isPanelOpen;
+    private bool isLoading = true;
+    private int unreadCount;
+    private List<NotificationResponse> notifications = [];
+    private HubConnection? hubConnection;
+    private Guid currentUserId;
 
-    private bool isPanelOpen = false;
-    private int unreadCount = 2;
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var idClaim = authState.User.FindFirst("sub")?.Value;
+        Guid.TryParse(idClaim, out currentUserId);
 
-    private List<Notification> notifications =
-    [
-        new("タスクが割り当てられました", "「ログイン画面デザイン」があなたに割り当てられました", "5分前", false),
-        new("期限が近づいています", "「APIエンドポイント実装」の期限は明日です", "1時間前", false),
-        new("コメントが追加されました", "「かんばんボード」にコメントが追加されました", "3時間前", true),
-    ];
+        await LoadNotificationsAsync();
+        await ConnectSignalRAsync();
+    }
+
+    private async Task LoadNotificationsAsync()
+    {
+        isLoading = true;
+        var result = await NotificationService.GetNotificationsAsync();
+        if (result.Succeeded)
+        {
+            notifications = [.. result.Data!];
+            unreadCount = notifications.Count(n => !n.IsRead);
+        }
+        isLoading = false;
+    }
+
+    private async Task ConnectSignalRAsync()
+    {
+        if (currentUserId == Guid.Empty)
+            return;
+
+        var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:7192";
+        var hubUrl = $"{apiBaseUrl.TrimEnd('/')}/hubs/notification";
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<int>("UnreadCountUpdated", async _ =>
+        {
+            await LoadNotificationsAsync();
+            await InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.Reconnected += async _ =>
+        {
+            await hubConnection.SendAsync("JoinUserGroup", currentUserId.ToString());
+        };
+
+        try
+        {
+            await hubConnection.StartAsync();
+            await hubConnection.SendAsync("JoinUserGroup", currentUserId.ToString());
+        }
+        catch
+        {
+            // 通知のリアルタイム更新に失敗しても致命的ではないため握りつぶす
+        }
+    }
 
     private void TogglePanel() => isPanelOpen = !isPanelOpen;
+
+    private async Task MarkAllAsReadAsync()
+    {
+        var result = await NotificationService.MarkAllAsReadAsync();
+        if (result.Succeeded)
+            await LoadNotificationsAsync();
+    }
+
+    private async Task HandleNotificationClickAsync(NotificationResponse notification)
+    {
+        isPanelOpen = false;
+
+        if (!notification.IsRead)
+            await NotificationService.MarkAsReadAsync(notification.Id);
+
+        if (notification.Type == "MemberInvited")
+        {
+            NavigationManager.NavigateTo($"/projects/{notification.RelatedEntityId}/board");
+        }
+        else
+        {
+            // TaskAssigned / TaskCommented: RelatedEntityId はタスクID
+            var taskResult = await TaskService.GetTaskByIdAsync(notification.RelatedEntityId);
+            if (taskResult.Succeeded)
+                NavigationManager.NavigateTo($"/projects/{taskResult.Data!.ProjectId}/board?taskId={notification.RelatedEntityId}");
+        }
+
+        await LoadNotificationsAsync();
+    }
+
+    private static string GetTypeLabel(string type) => type switch
+    {
+        "TaskAssigned" => "タスクアサイン",
+        "TaskCommented" => "コメント",
+        "MemberInvited" => "メンバー招待",
+        _ => "通知",
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+            await hubConnection.DisposeAsync();
+    }
 }
