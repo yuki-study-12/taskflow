@@ -8,7 +8,7 @@ using TaskFlow.Application.Common.Models;
 
 namespace TaskFlow.Infrastructure.ErrorReporting;
 
-internal sealed class ClaudeExceptionAnalyzer(
+public sealed class ClaudeExceptionAnalyzer(
     IHttpClientFactory                  httpFactory,
     IOptions<ErrorAnalysisSettings>     options)
     : IExceptionAnalyzer

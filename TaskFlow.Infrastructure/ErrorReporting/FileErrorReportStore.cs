@@ -5,7 +5,7 @@ using TaskFlow.Application.Common.Models;
 
 namespace TaskFlow.Infrastructure.ErrorReporting;
 
-internal sealed class FileErrorReportStore(
+public sealed class FileErrorReportStore(
     IOptions<ErrorAnalysisSettings> options)
     : IErrorReportStore
 {
