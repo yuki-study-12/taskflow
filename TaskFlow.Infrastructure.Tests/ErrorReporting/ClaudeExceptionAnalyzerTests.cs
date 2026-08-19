@@ -60,20 +60,27 @@ public class ClaudeExceptionAnalyzerTests
 
     private static string ValidClaudeResponse(
         string   rootCause      = "テスト原因",
-        string[] ? files        = null,
+        string[]? files         = null,
         string   impact         = "影響なし",
         string   recommendedFix = "修正方針")
     {
-        var filesJson = System.Text.Json.JsonSerializer.Serialize(
-            files ?? ["Foo/Bar.cs (line 1)"]);
-        return $$"""
+        // Claude API のレスポンスは「JSON 文字列の中に JSON 文字列」という入れ子構造なので、
+        // 手書きのエスケープではなく JsonSerializer で二重にシリアライズして正しくエスケープする。
+        var innerJson = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            rootCause,
+            affectedFiles = files ?? ["Foo/Bar.cs (line 1)"],
+            impact,
+            recommendedFix
+        });
+
+        return System.Text.Json.JsonSerializer.Serialize(new
+        {
+            content = new[]
             {
-              "content": [{
-                "type": "text",
-                "text": "{\"rootCause\":\"{{rootCause}}\",\"affectedFiles\":{{filesJson}},\"impact\":\"{{impact}}\",\"recommendedFix\":\"{{recommendedFix}}\"}"
-              }]
+                new { type = "text", text = innerJson }
             }
-            """;
+        });
     }
 
     // ─── テスト ──────────────────────────────────────────────────────────
