@@ -57,7 +57,9 @@ curl -k https://localhost:7192/api/projects \
 }
 ```
 
-> 例外: `POST /api/auth/register` と `POST /api/auth/login` のバリデーション/認証失敗時のみ、上記と異なり `string[]`（エラーメッセージの配列）をそのまま返す（`400 Bad Request`）。
+> 例外: `POST /api/auth/register` と `POST /api/auth/login` は、失敗理由によって400のボディ形式が2種類ある。
+> - 入力値バリデーション違反（メール形式不正・パスワード短すぎ等）→ 他のエンドポイントと同じ `ValidationProblemDetails`
+> - ビジネスロジック上の失敗（登録済みメールアドレスでの登録、メール/パスワード不一致でのログイン等）→ `string[]`（エラーメッセージの配列）をそのまま返す
 
 未指定パラメータの型不一致（例: GUIDでないIDをルートに渡す）は ASP.NET Core のルート制約（`{id:guid}`）により自動的に `404 Not Found` になる。
 
@@ -149,16 +151,16 @@ curl -k https://localhost:7192/api/projects \
 ```json
 { "email": "user@example.com", "password": "password123", "displayName": "yuki" }
 ```
-バリデーション: Email形式必須 / Password 8〜100文字 / DisplayName 1〜50文字
+バリデーション: Email形式必須 / Password 8〜100文字 / DisplayName 1〜50文字（違反時は `400` + `ValidationProblemDetails`）
 
-レスポンス: `200 OK` → `AuthResponse` ／ 失敗時 `400 Bad Request` → `string[]`
+レスポンス: `200 OK` → `AuthResponse` ／ メール重複等の失敗時 `400 Bad Request` → `string[]`（例: `["このメールアドレスは既に使用されています。"]`）
 
 ### `POST /api/auth/login` — 認証: 不要
 ログイン。
 
 リクエスト: `{ "email": "string", "password": "string" }`
 
-レスポンス: `200 OK` → `AuthResponse` ／ 失敗時 `400 Bad Request` → `string[]`
+レスポンス: `200 OK` → `AuthResponse` ／ メール/パスワード不一致等の失敗時 `400 Bad Request` → `string[]`
 
 ### `GET /api/auth/me` — 認証: 必須
 ログイン中ユーザーの情報を取得。
@@ -398,10 +400,10 @@ curl -k -X PUT https://localhost:7192/api/tasks/$TASK_ID \
 
 | Hub | パス | クライアント→サーバー | サーバー→クライアント |
 |---|---|---|---|
-| BoardHub | `/hubs/board` | `JoinBoard(boardId)` / `LeaveBoard(boardId)` | `TaskMoved(task)` |
+| BoardHub | `/hubs/board` | `JoinBoard(boardId)` / `LeaveBoard(boardId)` | `TaskMoved({ id, columnId, title, description, assigneeId, order })` |
 | NotificationHub | `/hubs/notification` | `JoinUserGroup(userId)` / `LeaveUserGroup(userId)` | `UnreadCountUpdated(count)` |
 
-接続にはクエリ文字列またはヘッダーでJWTトークンを渡す必要がある（詳細は `TaskFlow.Web/Services` のSignalR接続実装を参照）。
+> **⚠️ 現状の注意点**: `BoardHub` / `NotificationHub` はどちらも `[Authorize]` 属性が付与されておらず、**JWT認証なしで誰でも接続・`JoinBoard`/`JoinUserGroup` 呼び出しが可能**（`Program.cs` の `MapHub<>()` にも `.RequireAuthorization()` が付いていない）。ボードIDやユーザーIDが分かれば、権限チェックを経ずにそのグループの更新を購読できてしまう状態のため、本番運用前にはHub側の認証・認可の追加を検討すべき。Web UI側の接続コード（`Kanban.razor`, `NotificationPanel.razor`）も現状トークンを渡していない。
 
 ---
 
