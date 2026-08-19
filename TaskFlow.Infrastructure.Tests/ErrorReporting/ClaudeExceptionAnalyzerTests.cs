@@ -136,10 +136,18 @@ public class ClaudeExceptionAnalyzerTests
 
         await analyzer.AnalyzeAsync(BuildContext(ex));
 
-        // リクエストボディに "切り捨て" の文字列が含まれること（4000 文字で切り捨て済み）
+        // JsonSerializer は既定で非 ASCII 文字を \uXXXX にエスケープするため、
+        // 生の文字列比較ではなく JSON をデコードしたプロンプト本文で検証する。
         var requestBody = await handler.LastRequest!.Content!.ReadAsStringAsync();
-        Assert.Contains("切り捨て", requestBody);
+        using var requestDoc = System.Text.Json.JsonDocument.Parse(requestBody);
+        var prompt = requestDoc.RootElement
+            .GetProperty("messages")[0]
+            .GetProperty("content")
+            .GetString()!;
+
+        // プロンプトに "切り捨て" の文字列が含まれること（4000 文字で切り捨て済み）
+        Assert.Contains("切り捨て", prompt);
         // 元の 5000 文字の 'x' が全部含まれていないこと
-        Assert.DoesNotContain(new string('x', 4001), requestBody);
+        Assert.DoesNotContain(new string('x', 4001), prompt);
     }
 }
