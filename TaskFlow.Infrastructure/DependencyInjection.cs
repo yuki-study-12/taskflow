@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TaskFlow.Application.Common.Interfaces;
 using TaskFlow.Infrastructure.Auth;
-using TaskFlow.Infrastructure.ErrorAnalysis;
+using TaskFlow.Infrastructure.ErrorReporting;
 using TaskFlow.Infrastructure.Identity;
 using TaskFlow.Infrastructure.Persistence;
 

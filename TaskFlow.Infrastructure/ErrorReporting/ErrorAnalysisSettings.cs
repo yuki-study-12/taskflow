@@ -1,4 +1,4 @@
-namespace TaskFlow.Infrastructure.ErrorAnalysis;
+namespace TaskFlow.Infrastructure.ErrorReporting;
 
 public sealed class ErrorAnalysisSettings
 {

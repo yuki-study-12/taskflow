@@ -2,10 +2,10 @@ using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
 using TaskFlow.Application.Common.Models;
-using TaskFlow.Infrastructure.ErrorAnalysis;
+using TaskFlow.Infrastructure.ErrorReporting;
 using Xunit;
 
-namespace TaskFlow.Infrastructure.Tests.ErrorAnalysis;
+namespace TaskFlow.Infrastructure.Tests.ErrorReporting;
 
 public class ClaudeExceptionAnalyzerTests
 {

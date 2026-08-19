@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using TaskFlow.Application.Common.Interfaces;
 using TaskFlow.Application.Common.Models;
 
-namespace TaskFlow.Infrastructure.ErrorAnalysis;
+namespace TaskFlow.Infrastructure.ErrorReporting;
 
 internal sealed class SmtpErrorNotificationService(
     IOptions<ErrorAnalysisSettings> options)
