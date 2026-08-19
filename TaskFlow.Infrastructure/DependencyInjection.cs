@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TaskFlow.Application.Common.Interfaces;
 using TaskFlow.Infrastructure.Auth;
+using TaskFlow.Infrastructure.ErrorAnalysis;
 using TaskFlow.Infrastructure.Identity;
 using TaskFlow.Infrastructure.Persistence;
 
@@ -77,6 +79,23 @@ public static class DependencyInjection
         services.AddScoped<IBoardRepository, BoardRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+
+        // ── エラー解析パイプライン（Singleton — EF Core 依存なし）──────────────
+        services.Configure<ErrorAnalysisSettings>(
+            configuration.GetSection(ErrorAnalysisSettings.SectionName));
+
+        services.AddHttpClient("claude").ConfigureHttpClient((sp, client) =>
+        {
+            var s = sp.GetRequiredService<IOptions<ErrorAnalysisSettings>>().Value;
+            client.BaseAddress = new Uri("https://api.anthropic.com");
+            client.DefaultRequestHeaders.Add("x-api-key", s.ClaudeApiKey);
+            client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        services.AddSingleton<IExceptionAnalyzer,       ClaudeExceptionAnalyzer>();
+        services.AddSingleton<IErrorReportStore,         FileErrorReportStore>();
+        services.AddSingleton<IErrorNotificationService, SmtpErrorNotificationService>();
 
         return services;
     }
